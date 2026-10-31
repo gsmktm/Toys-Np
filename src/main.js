@@ -85,6 +85,8 @@ const strings = {
   }
 };
 Object.assign(strings,extraLocales);
+Object.assign(strings.en,{setupOnline:'International games and guest ratings are stored on the configured server. Offline games remain on your device.'});
+Object.assign(strings.ne,{setupOnline:'अनलाइन खेल र अतिथि वरीयता सम्बन्धित सर्भरमा सुरक्षित रहन्छन्। अफलाइन खेल आफ्नो यन्त्रमा रहन्छ।'});
 const t = key => strings[settings.lang]?.[key] || strings.en[key] || key;
 Object.assign(strings.en,{onlineMode:'Online · Worldwide',worldArena:'WORLD ARENA',onlineDescription:'Play with friends worldwide. Every move is verified by the server.',serverAddress:'SERVER ADDRESS · WSS',connectServer:'CONNECT TO WORLD ARENA',playerName:'PLAYER NAME',country:'COUNTRY (ISO 2)',saveProfile:'SAVE PROFILE',quickMatch:'⚡ QUICK MATCH',privateRoom:'✦ PRIVATE ROOM',joinCode:'6-CHARACTER ROOM CODE',joinRoom:'JOIN ROOM',spectate:'WATCH',roomCode:'ROOM',copyInvite:'COPY INVITE',resign:'RESIGN',leaveRoom:'LEAVE',rematch:'REMATCH',cancelSearch:'CANCEL SEARCH',bluetoothTitle:'BLUETOOTH BOARD',bluetoothDescription:'Connect a compatible BLE Baghchal board/controller using Chromium over HTTPS. Not phone-to-phone Bluetooth.',bluetoothConnect:'PAIR DEVICE',bluetoothDisconnect:'DISCONNECT',globalRankings:'GLOBAL GUEST RANKINGS',guestRankings:'Guest rankings are informal; no verified account is required.',onlineWait:'Find a match or wait for a friend to join.',onlineWaiting:'WAITING',notYourTurn:'Wait for the other player.',serverRequired:'Enter your secure multiplayer server URL first.',inviteCopied:'Invitation copied.',connectionFailed:'Could not connect to multiplayer server.',pairSuccess:'Bluetooth board connected.',pairFailure:'Bluetooth is unavailable or the device declined pairing.',bleUnavailable:'Compatible BLE board required on supported Chromium browser.',rankEmpty:'No ranked matches have finished yet.',waitingOpponent:'Waiting for another player…',rankedMatch:'Ranked match',casualMatch:'Friendly match',watching:'Watching',noRoom:'No active room',tigerTime:'Tiger',goatTime:'Goat'});
 Object.assign(strings.ne,{onlineMode:'विश्वव्यापी अनलाइन',worldArena:'विश्व खेल मैदान',onlineDescription:'विश्वभरका साथीसँग खेल्नुहोस्। हरेक चाल सर्भरले जाँच्छ।',serverAddress:'सर्भर ठेगाना · WSS',connectServer:'अनलाइन जोडिनुहोस्',playerName:'खेलाडीको नाम',country:'देश (ISO २ अक्षर)',saveProfile:'परिचय सुरक्षित',quickMatch:'⚡ तुरुन्त खेलौँ',privateRoom:'✦ निजी कोठा',joinCode:'६-अक्षर कोठा कोड',joinRoom:'कोठामा प्रवेश',spectate:'हेर्नुहोस्',roomCode:'कोठा',copyInvite:'निम्तो कपी',resign:'हार स्वीकार',leaveRoom:'बाहिरिनुहोस्',rematch:'फेरि खेलौँ',cancelSearch:'खोजी रोक्नुहोस्',bluetoothTitle:'ब्लुटुथ बोर्ड',bluetoothDescription:'HTTPS मा समर्थित Chromium बाट उपयुक्त BLE बाघचाल बोर्डसँग जोड्नुहोस्। यो फोन–फोन ब्लुटुथ होइन।',bluetoothConnect:'उपकरण जोड्नुहोस्',bluetoothDisconnect:'छुट्याउनुहोस्',globalRankings:'विश्व अतिथि वरीयता',guestRankings:'यो अतिथि वरीयता हो; प्रमाणित खाता आवश्यक छैन।',onlineWait:'प्रतिद्वन्द्वी खोज्नुहोस् वा साथीको प्रतीक्षा गर्नुहोस्।',onlineWaiting:'प्रतीक्षामा',notYourTurn:'अर्को खेलाडीको पालो हो।',serverRequired:'पहिले सुरक्षित अनलाइन सर्भर ठेगाना राख्नुहोस्।',inviteCopied:'निम्तो कपी भयो।',connectionFailed:'अनलाइन सर्भरसँग जोडिन सकेन।',pairSuccess:'ब्लुटुथ बोर्ड जोडियो।',pairFailure:'ब्लुटुथ उपलब्ध छैन वा उपकरण जोडिएन।',bleUnavailable:'समर्थित Chromium र उपयुक्त BLE बोर्ड आवश्यक छ।',rankEmpty:'अहिलेसम्म वरीयताको खेल सकिएको छैन।',waitingOpponent:'अर्को खेलाडीको प्रतीक्षा…',rankedMatch:'वरीयता खेल',casualMatch:'मैत्रीपूर्ण खेल',watching:'दर्शक',noRoom:'खेल कोठा छैन',tigerTime:'बाघ',goatTime:'बाख्रा'});
@@ -250,6 +252,7 @@ function translate() {
 }
 function render() {
   translate();
+  document.querySelector('.setup-panel .setup-note').textContent=settings.mode==='online'?t('setupOnline'):t('setupNote');
   const phase = game.goatsPlaced<20 ? t('placement'):t('movement');
   const ai = settings.mode==='ai' && game.turn!==settings.human && !game.winner;
   setText('modeLabel',t(settings.mode==='ai'?'vsAi':settings.mode==='online'?'onlineMode':'local'));
@@ -370,6 +373,7 @@ function onNetworkStatus(status,message='') {
   renderNetworkPanel();
 }
 function onNetworkEvent(msg) {
+  if(settings.mode!=='online')return;
   if(msg.type==='welcome') {
     $('playerName').value=msg.profile.name;
     $('playerCountry').value=msg.profile.country;
@@ -501,6 +505,8 @@ function onBluetoothStatus(status){
 }
 function wireOnline(){
   $('connectBtn').addEventListener('click',()=>{
+    if(networkRoom?.status==='active'&&!window.confirm(settings.lang==='ne'?'अहिलेको खेल छोडेर नयाँ सर्भरमा जाने?':'Leaving the current match will count as resignation. Switch servers?'))return;
+    if(networkRoom)network.send({type:'leave'});
     const address=$('serverAddress').value.trim();
     if(!address){notify(t('serverRequired'));return;}
     try{

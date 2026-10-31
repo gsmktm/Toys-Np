@@ -116,6 +116,7 @@ The royal design system is implemented in `royal.css` as a separate presentation
 
 - `icons/royal-crest.svg`: an **original Shreepech-inspired** heraldic crest with ॐ, the moon and sun, antique gold and crimson detailing. It is decorative, not a claim to be an official royal insignia.
 - `icons/himalaya-royal.svg`: original SVG Himalayan mountain illustration for the hero backdrop.
+- `images/royal-baghchal-banner.svg`: original 1200×630 promotional banner for the game collection.
 - `icons/tiger-piece.svg` and `icons/goat-piece.svg`: original, crisp vector playing pieces used on the live board, the player turn panel and game history.
 - `royal.css`: color/design tokens, wood-and-gold board, carved-wood presentation, responsive royal controls, victory styling and a reduced-motion alternative.
 

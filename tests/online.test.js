@@ -1,0 +1,101 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHub, sanitizeName, sanitizeCountry } from '../server/hub.js';
+const mk=()=>{
+  let now=1000;
+  const rec=new Map();
+  const store={get:k=>rec.get(k),set:(k,v)=>rec.set(k,v),top:()=>[...rec.values()]};
+  const hub=createHub({store,now:()=>now,rand:()=>0});
+  const socket=()=>({readyState:1,messages:[],send(str){this.messages.push(JSON.parse(str));},close(){this.readyState=3;}});
+  const last=(s,type)=>s.messages.filter(m=>m.type===type).at(-1);
+  const hello=(s,name)=>{
+    hub.dispatch(s,{type:'hello',name,country:'NP'});
+    return last(s,'welcome');
+  };
+  return {hub,socket,last,hello,moveTime:ms=>{now+=ms}};
+};
+test('name sanitization removes markup/control characters and validates country',()=>{
+  assert.equal(sanitizeName('<a>\u0000Alice'), 'aAlice');
+  assert.equal(sanitizeCountry('xx'),'XX');
+  assert.equal(sanitizeCountry('invalid'),'XX');
+});
+test('players join by code; turns and version are enforced',()=>{
+  const h=mk(),a=h.socket(),b=h.socket();
+  const A=h.hello(a,'Ram'),B=h.hello(b,'Kai');
+  assert.ok(A.token.length===64);
+  h.hub.dispatch(a,{type:'create',side:'goat'});
+  const code=h.last(a,'snapshot').room.code;
+  h.hub.dispatch(b,{type:'join',code});
+  let room=h.last(a,'snapshot').room;
+  assert.equal(room.status,'active');
+  assert.equal(room.players.tiger.name,'Kai');
+  h.hub.dispatch(b,{type:'move',version:0,from:0,to:1});
+  assert.equal(h.last(b,'error').code,'not_your_turn');
+  h.hub.dispatch(a,{type:'move',version:0,from:null,to:12});
+  room=h.last(b,'snapshot').room;
+  assert.equal(room.version,1);
+  assert.equal(room.game.goatsPlaced,1);
+  h.hub.dispatch(a,{type:'move',version:0,from:null,to:11});
+  assert.equal(h.last(a,'error').code,'not_your_turn');
+  h.hub.dispatch(b,{type:'move',version:1,from:0,to:12});
+  assert.equal(h.last(b,'error').code,'illegal_move');
+  h.hub.dispatch(b,{type:'move',version:1,from:0,to:5});
+  assert.equal(h.last(a,'snapshot').room.game.board[5].side,'tiger');
+  assert.equal(h.last(a,'snapshot').room.version,2);
+});
+test('reconnect with token restores player seat and game state',()=>{
+  const h=mk(),a=h.socket(),b=h.socket();
+  const id=h.hello(a,'Sita').token;
+  h.hello(b,'Pemba');
+  h.hub.dispatch(a,{type:'create'});
+  const code=h.last(a,'snapshot').room.code;
+  h.hub.dispatch(b,{type:'join',code});
+  h.hub.disconnect(a);
+  const back=h.socket();h.hub.dispatch(back,{type:'hello',token:id});
+  assert.equal(h.last(back,'snapshot').room.mySide,'goat');
+  assert.equal(h.last(back,'snapshot').room.code,code);
+});
+test('ranked matchmaking, resignation and Elo change',()=>{
+  const h=mk(),a=h.socket(),b=h.socket();
+  h.hello(a,'A');h.hello(b,'B');
+  h.hub.dispatch(a,{type:'quick'});
+  assert.equal(h.last(a,'queue').waiting,true);
+  h.hub.dispatch(b,{type:'quick'});
+  let room=h.last(a,'snapshot').room;
+  assert.equal(room.ranked,true);
+  // Deterministic matching puts B in the goat seat and A in the tiger seat.
+  h.hub.dispatch(b,{type:'move',from:null,to:12,version:0});
+  h.hub.dispatch(a,{type:'move',from:0,to:5,version:1});
+  h.hub.dispatch(a,{type:'resign'});
+  room=h.last(a,'snapshot').room;
+  assert.equal(room.status,'complete');
+  assert.equal(room.game.winner,'goat');
+  assert.equal(h.last(b,'rating').delta,12);
+});
+test('spectator cannot submit moves; timeout is authoritative',()=>{
+  const h=mk(),a=h.socket(),b=h.socket(),c=h.socket();
+  h.hello(a,'A');h.hello(b,'B');h.hello(c,'C');
+  h.hub.dispatch(a,{type:'create'});
+  const code=h.last(a,'snapshot').room.code;
+  h.hub.dispatch(b,{type:'join',code});
+  h.hub.dispatch(c,{type:'spectate',code});
+  h.hub.dispatch(c,{type:'move',version:0,from:null,to:12});
+  assert.equal(h.last(c,'error').code,'not_your_turn');
+  h.moveTime(600001);
+  h.hub.tick();
+  assert.equal(h.last(a,'snapshot').room.game.winner,'tiger');
+  assert.equal(h.last(c,'snapshot').room.game.reason,'timeout');
+});
+test('reject stale client moves, room duplication, and malformed coordinates',()=>{
+  const h=mk(),a=h.socket(),b=h.socket();
+  h.hello(a,'A');h.hello(b,'B');
+  h.hub.dispatch(a,{type:'create'});
+  const code=h.last(a,'snapshot').room.code;
+  h.hub.dispatch(b,{type:'join',code});
+  h.hub.dispatch(a,{type:'move',version:50,from:null,to:1});
+  assert.equal(h.last(a,'error').code,'stale_move');
+  h.hub.dispatch(a,{type:'move',version:0,from:null,to:'3'});
+  assert.equal(h.last(a,'error').code,'invalid_move');
+  h.hub.dispatch(a,{type:'create'});
+  assert.equal(h.last(a,'error').code,'already_busy');
+});

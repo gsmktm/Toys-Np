@@ -1,13 +1,20 @@
 {
   "name": "ktm-toys-baghchal",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Baghchal — Nepal's Tigers & Goats game for KTM Toys",
+  "description": "KTM Toys Nepal Baghchal with authoritative international multiplayer and BLE accessory integration",
   "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
     "test": "node --test",
-    "start": "npx --yes serve ."
+    "static": "npx --yes serve ."
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
   "license": "UNLICENSED"
 }

@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101927">
+  <meta name="theme-color" content="#080e1a">
+  <meta name="color-scheme" content="dark">
   <meta name="description" content="बाघचाल — Nepal's timeless Tigers & Goats strategy game. Play against the computer or a friend, free and offline.">
   <meta property="og:title" content="बाघचाल | KTM TOYS Nepal">
   <meta property="og:description" content="The Himalayan game of strategy. 4 tigers. 20 goats. One legendary board.">
@@ -11,19 +12,21 @@
   <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./royal.css">
   <title>बाघचाल | KTM TOYS — Tigers & Goats</title>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
   <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="royal-sky" aria-hidden="true"></div>
   <div class="page-shell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="KTM TOYS Baghchal Home">
-        <span class="brand-mark" aria-hidden="true">✦</span>
-        <span class="brand-stack"><strong>KTM<span>TOYS</span></strong><small>NEPAL · HIMALAYAN GAMES</small></span>
+        <span class="brand-mark royal-logo-mark" aria-hidden="true"><img src="./icons/royal-crest.svg" alt="" width="43" height="46"></span>
+        <span class="brand-stack"><strong>KTM<span>TOYS</span></strong><small>ROYAL HERITAGE · NEPAL</small></span>
       </a>
       <nav class="nav-actions" aria-label="Quick actions">
-        <span class="heritage-pill"><span class="pulse-dot"></span><span data-t="heritage">MADE IN NEPAL</span> <span aria-hidden="true">🇳🇵</span></span>
+        <span class="heritage-pill"><span class="crest-moon" aria-hidden="true">☾</span><span data-t="heritage">MADE IN NEPAL</span><span class="crest-sun" aria-hidden="true">☀</span></span>
         <label class="language-control" aria-label="Language"><select class="nav-btn language-select" id="langSelect">
           <option value="ne">नेपाली</option><option value="en">English</option>
           <option value="es">Español</option><option value="fr">Français</option>
@@ -34,12 +37,20 @@
       </nav>
     </header>
 
-    <section class="hero" aria-label="Introduction">
+    <section class="hero royal-hero" aria-label="Introduction">
+      <div class="hero-crest" aria-hidden="true"><img src="./icons/royal-crest.svg" width="104" height="113" alt=""></div>
+      <span class="royal-hero-glyph royal-hero-glyph-left" aria-hidden="true">☾</span>
+      <span class="royal-hero-glyph royal-hero-glyph-right" aria-hidden="true">☀</span>
       <div class="hero-brow"><span class="hero-line"></span><span data-t="heroEyebrow">THE HIMALAYAN STRATEGY COLLECTION</span></div>
-      <h1><span data-t="heroTitle">बाघचाल</span> <span class="hero-star" aria-hidden="true">✳</span></h1>
+      <h1><span data-t="heroTitle">बाघचाल</span></h1>
       <div class="hero-copy"><span class="hero-english">BAGH CHAL</span><span class="hero-divider"></span><span data-t="heroSubtitle">THE TIGER & GOAT GAME</span></div>
       <p class="hero-description" data-t="heroDescription">Four tigers. Twenty goats. A timeless battle of instinct and intelligence, born in the hills of Nepal.</p>
       <div class="hero-foot"><span>04 <span data-t="tigersCaps">TIGERS</span></span><i></i><span>20 <span data-t="goatsCaps">GOATS</span></span><i></i><span>25 <span data-t="pointsCaps">POINTS</span></span></div>
+      <div class="royal-mode-switch" role="group" aria-label="Game mode shortcuts">
+        <button type="button" class="royal-mode-btn" data-play-mode="ai" aria-pressed="true"><span aria-hidden="true">♜</span><span data-t="royalSolo">SOLO COURT</span></button>
+        <button type="button" class="royal-mode-btn" data-play-mode="local" aria-pressed="false"><span aria-hidden="true">⚔</span><span data-t="royalDuel">ROYAL DUEL</span></button>
+        <button type="button" class="royal-mode-btn" data-play-mode="online" aria-pressed="false"><span aria-hidden="true">◎</span><span data-t="royalWorld">WORLD ARENA</span></button>
+      </div>
     </section>
 
     <main class="game-layout" id="game" aria-label="Baghchal game">
@@ -49,18 +60,19 @@
           <span class="mode-tag"><span class="live-dot"></span><span id="modeLabel">VS COMPUTER</span></span>
         </div>
 
-        <div class="arena-frame">
+        <div class="arena-frame royal-arena">
           <div class="arena-corner corner-tl" aria-hidden="true">✦</div>
           <div class="arena-corner corner-tr" aria-hidden="true">✦</div>
           <div class="arena-corner corner-bl" aria-hidden="true">✦</div>
           <div class="arena-corner corner-br" aria-hidden="true">✦</div>
-          <div class="arena-topline"><span>✦</span><span data-t="arenaTop">ANCIENT NEPAL · 5 × 5</span><span>✦</span></div>
+          <div class="arena-topline"><span class="board-symbol" aria-hidden="true">☾</span><span data-t="arenaTop">ANCIENT NEPAL · 5 × 5</span><span class="board-symbol" aria-hidden="true">☀</span></div>
           <div class="board" id="board" role="group" aria-label="Baghchal 5 by 5 board">
+            <div class="board-mandala" aria-hidden="true">ॐ</div>
             <svg id="geometry" class="geometry" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false"></svg>
             <div id="nodes" class="nodes"></div>
             <div id="pieces" class="pieces" aria-hidden="true"></div>
           </div>
-          <div class="arena-bottomline"><span>◆</span><span data-t="arenaBottom">PATIENCE · COURAGE · STRATEGY</span><span>◆</span></div>
+          <div class="arena-bottomline"><span class="royal-asterisk">✤</span><span data-t="arenaBottom">PATIENCE · COURAGE · STRATEGY</span><span class="royal-asterisk">✤</span></div>
         </div>
 
         <div class="action-bar" role="group" aria-label="Game actions">
@@ -76,7 +88,7 @@
         <section class="panel turn-panel">
           <div class="panel-top"><span class="eyebrow" data-t="currentTurn">CURRENT TURN</span><span id="statusBadge" class="status-badge">YOUR MOVE</span></div>
           <div class="player-row">
-            <span class="player-medallion" id="turnAvatar">🐐</span>
+            <span class="player-medallion" id="turnAvatar"><img src="./icons/goat-piece.svg" alt="" width="42" height="42"></span>
             <div class="player-copy"><h2 id="turnTitle">Goats to play</h2><p id="turnDesc">Place a goat on any empty point.</p></div>
           </div>
           <div class="phase-banner"><span class="phase-icon">◈</span><div><small data-t="gamePhase">GAME PHASE</small><strong id="phaseValue">Placement phase</strong></div><span class="phase-arrows">››</span></div>
@@ -85,8 +97,8 @@
         <section class="panel score-panel">
           <div class="panel-top"><span class="eyebrow" data-t="matchOverview">MATCH OVERVIEW</span><span class="micro-mark">01 / 02</span></div>
           <div class="score-grid">
-            <div class="score-tile goat-tile"><div class="score-label"><span>🐐</span><span data-t="goatsPlaced">Goats placed</span></div><strong id="placedCount">0<span>/20</span></strong><div class="meter"><div id="placementMeter" class="meter-fill goat-fill"></div></div></div>
-            <div class="score-tile tiger-tile"><div class="score-label"><span>🐯</span><span data-t="goatsCaptured">Goats captured</span></div><strong id="capturedCount">0<span>/5</span></strong><div class="meter"><div id="captureMeter" class="meter-fill tiger-fill"></div></div></div>
+            <div class="score-tile goat-tile"><div class="score-label"><span class="score-emblem"><img src="./icons/goat-piece.svg" alt="" width="27" height="27"></span><span data-t="goatsPlaced">Goats placed</span></div><strong id="placedCount">0<span>/20</span></strong><div class="meter"><div id="placementMeter" class="meter-fill goat-fill"></div></div></div>
+            <div class="score-tile tiger-tile"><div class="score-label"><span class="score-emblem"><img src="./icons/tiger-piece.svg" alt="" width="27" height="27"></span><span data-t="goatsCaptured">Goats captured</span></div><strong id="capturedCount">0<span>/5</span></strong><div class="meter"><div id="captureMeter" class="meter-fill tiger-fill"></div></div></div>
           </div>
           <div class="move-count"><span data-t="movesPlayed">Moves played</span><strong id="moveCount">00</strong></div>
         </section>
@@ -157,7 +169,7 @@
       </aside>
     </main>
 
-    <footer class="footer"><span>KTM TOYS <i>✦</i> NEPAL</span><span data-t="footerText">Crafted for the next generation. Rooted in tradition.</span></footer>
+    <footer class="footer"><span><span aria-hidden="true">ॐ</span> KTM TOYS <i>✦</i> NEPAL</span><span data-t="footerText">Crafted for the next generation. Rooted in tradition.</span></footer>
   </div>
 
   <dialog id="rulesDialog" class="rules-dialog" aria-labelledby="rulesTitle">
@@ -172,7 +184,7 @@
   </dialog>
   <div id="winOverlay" class="win-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="winTitle">
     <div id="confetti" class="confetti" aria-hidden="true"></div>
-    <div class="win-card"><div class="win-glyph" id="winGlyph">🏆</div><div class="eyebrow" data-t="matchFinished">MATCH FINISHED</div><h2 id="winTitle">Victory!</h2><p id="winDescription"></p><button class="dialog-action" id="rematchBtn" type="button" data-t="playAgain">PLAY AGAIN ↻</button><button class="win-close" id="closeWinBtn" type="button" data-t="viewBoard">View board</button></div>
+    <div class="win-card"><div class="win-glyph" id="winGlyph"><img src="./icons/royal-crest.svg" alt="" width="100" height="108"></div><div class="eyebrow" data-t="matchFinished">MATCH FINISHED</div><h2 id="winTitle">Victory!</h2><p id="winDescription"></p><button class="dialog-action" id="rematchBtn" type="button" data-t="playAgain">PLAY AGAIN ↻</button><button class="win-close" id="closeWinBtn" type="button" data-t="viewBoard">View board</button></div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="./src/main.js"></script>

@@ -57,6 +57,10 @@ test('HTTP server + real WebSocket handshake, rooms, move validation, and API he
   assert.match(page,/royal-crest.svg/);
   assert.match(page,/data-play-mode="online"/);
   assert.match(page,/id="moveAnnouncer"/);
+  assert.match(page,/id="onlineRematchBtn"/);
+  assert.match(page,/id="rematchBtn"/);
+  const ids=[...page.matchAll(/\\bid="([^"]+)"/g)].map(match=>match[1]);
+  assert.equal(new Set(ids).size,ids.length,'all UI control IDs must be unique');
   for (const asset of [
     '/royal.css','/icons/royal-crest.svg','/icons/tiger-piece.svg',
     '/icons/goat-piece.svg','/icons/himalaya-royal.svg',

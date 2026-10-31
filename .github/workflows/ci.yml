@@ -1,0 +1,28 @@
+name: Baghchal quality checks
+on:
+  push:
+    branches: [master, feat/animated-baghchal-game]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check src/engine.js
+          node --check src/ai.js
+          node --check src/main.js
+          node --check sw.js
+      - name: Test game rules and computer player
+        run: npm test

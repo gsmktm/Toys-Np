@@ -24,7 +24,12 @@
       </a>
       <nav class="nav-actions" aria-label="Quick actions">
         <span class="heritage-pill"><span class="pulse-dot"></span><span data-t="heritage">MADE IN NEPAL</span> <span aria-hidden="true">🇳🇵</span></span>
-        <button class="nav-btn" id="langBtn" type="button" aria-label="Switch language">EN</button>
+        <label class="language-control" aria-label="Language"><select class="nav-btn language-select" id="langSelect">
+          <option value="ne">नेपाली</option><option value="en">English</option>
+          <option value="es">Español</option><option value="fr">Français</option>
+          <option value="de">Deutsch</option><option value="zh">中文</option>
+          <option value="ja">日本語</option>
+        </select></label>
         <button class="nav-btn nav-rules" id="rulesBtn" type="button"><span aria-hidden="true">ⓘ</span> <span data-t="howTo">How to play</span></button>
       </nav>
     </header>
@@ -88,7 +93,7 @@
 
         <section class="panel setup-panel">
           <div class="panel-top"><span class="eyebrow" data-t="gameSettings">GAME SETTINGS</span><span class="micro-mark">02 / 02</span></div>
-          <label class="field"><span data-t="playMode">PLAY MODE</span><select id="modeSelect"><option value="ai" data-t="vsComputer">Vs. computer</option><option value="local" data-t="twoPlayers">Two players (local)</option></select></label>
+          <label class="field"><span data-t="playMode">PLAY MODE</span><select id="modeSelect"><option value="ai" data-t="vsComputer">Vs. computer</option><option value="local" data-t="twoPlayers">Two players (local)</option><option value="online" data-t="onlineMode">Online · Worldwide</option></select></label>
           <div class="fields-two">
             <label class="field" id="sideField"><span data-t="yourSide">YOUR SIDE</span><select id="sideSelect"><option value="goat" data-t="goats">Goats 🐐</option><option value="tiger" data-t="tigers">Tigers 🐯</option></select></label>
             <label class="field" id="difficultyField"><span data-t="difficulty">DIFFICULTY</span><select id="difficultySelect"><option value="easy" data-t="easy">Easy</option><option value="medium" data-t="medium">Medium</option><option value="hard" data-t="hard">Hard</option></select></label>
@@ -96,6 +101,54 @@
           <p class="setup-note" data-t="setupNote">Changing players starts a fresh match. All games stay on your device.</p>
         </section>
 
+
+        <section class="panel online-panel" id="onlinePanel" hidden aria-label="International online multiplayer">
+          <div class="panel-top"><span class="eyebrow" data-t="worldArena">WORLD ARENA</span><span class="status-badge" id="connectionStatus">OFFLINE</span></div>
+          <p class="setup-note" data-t="onlineDescription">Play with friends worldwide. Moves are verified by the live server.</p>
+          <label class="field"><span data-t="serverAddress">SERVER ADDRESS · WSS</span>
+            <input id="serverAddress" type="url" placeholder="wss://play.example.com/ws" spellcheck="false" autocomplete="url">
+          </label>
+          <button type="button" class="dialog-action mini-button" id="connectBtn" data-t="connectServer">CONNECT TO WORLD ARENA</button>
+          <div class="fields-two">
+            <label class="field"><span data-t="playerName">PLAYER NAME</span><input id="playerName" type="text" maxlength="32" placeholder="Your nickname" autocomplete="nickname"></label>
+            <label class="field"><span data-t="country">COUNTRY (ISO 2)</span><input id="playerCountry" type="text" maxlength="2" value="NP" placeholder="NP" autocomplete="country"></label>
+          </div>
+          <button class="action-button inline-action" id="profileBtn" type="button" data-t="saveProfile">SAVE PLAYER PROFILE</button>
+          <div class="online-controls">
+            <button class="action-button" id="quickBtn" type="button" data-t="quickMatch">⚡ QUICK MATCH</button>
+            <button class="action-button" id="createRoomBtn" type="button" data-t="privateRoom">✦ PRIVATE ROOM</button>
+          </div>
+          <div class="online-controls">
+            <label class="field room-field"><span data-t="joinCode">6-LETTER ROOM CODE</span><input id="joinCode" type="text" maxlength="6" placeholder="ABC123" autocapitalize="characters"></label>
+            <button class="action-button" id="joinBtn" type="button" data-t="joinRoom">JOIN ROOM</button>
+            <button class="action-button" id="spectateBtn" type="button" data-t="spectate">WATCH</button>
+          </div>
+          <div id="roomInfo" class="room-info" hidden>
+            <div class="room-number"><span data-t="roomCode">ROOM</span> <strong id="roomCodeLabel">------</strong></div>
+            <div id="roomPlayers" class="room-players"></div>
+            <div class="online-controls">
+              <button id="copyInviteBtn" type="button" class="action-button" data-t="copyInvite">COPY INVITE</button>
+              <button id="resignBtn" type="button" class="action-button" data-t="resign">RESIGN</button>
+              <button id="leaveRoomBtn" type="button" class="action-button" data-t="leaveRoom">LEAVE</button>
+              <button id="rematchBtn" type="button" class="action-button" data-t="rematch">REMATCH</button>
+            </div>
+          </div>
+          <button id="cancelQueueBtn" class="action-button inline-action" type="button" hidden data-t="cancelSearch">CANCEL SEARCH</button>
+          <p id="networkHint" class="setup-note" aria-live="polite"></p>
+        </section>
+        <section class="panel bluetooth-panel" id="bluetoothPanel" aria-label="Bluetooth board connection">
+          <div class="panel-top"><span class="eyebrow" data-t="bluetoothTitle">BLUETOOTH BOARD</span><span id="bluetoothStatus" class="micro-mark">NOT CONNECTED</span></div>
+          <p class="setup-note" data-t="bluetoothDescription">Connect a compatible BLE Baghchal board/controller on supported HTTPS Chromium browsers. Not phone-to-phone Bluetooth.</p>
+          <div class="online-controls">
+            <button type="button" class="action-button" id="bluetoothConnectBtn" data-t="bluetoothConnect">PAIR DEVICE</button>
+            <button type="button" class="action-button" id="bluetoothDisconnectBtn" data-t="bluetoothDisconnect">DISCONNECT</button>
+          </div>
+        </section>
+        <section class="panel leaderboard-panel" id="leaderboardPanel" hidden>
+          <div class="panel-top"><span class="eyebrow" data-t="globalRankings">GLOBAL GUEST RANKINGS</span><button id="refreshRanksBtn" class="action-button leaderboard-refresh" type="button">↻</button></div>
+          <div id="leaderboardRows" class="ranking-list"></div>
+          <p class="setup-note" data-t="guestRankings">Guest rankings are informal and can be reset by changing browsers.</p>
+        </section>
         <section class="panel history-panel">
           <div class="panel-top"><span class="eyebrow" data-t="recentMoves">RECENT MOVES</span><span class="history-icon">↗</span></div>
           <ol id="moveHistory" class="history-list" aria-label="Recent moves"></ol>

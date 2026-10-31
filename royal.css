@@ -314,3 +314,36 @@ body:before {background-image:radial-gradient(#b790551c .7px,transparent .7px);o
   .royal-mode-btn,.piece{transition:none!important}
 }
 @keyframes royalFloat {0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* Instant move feedback while the game engine enforces legal placement/captures. */
+.royal-move-fx,.royal-capture-fx {
+  position:absolute;z-index:5;pointer-events:none;transform:translate(-50%,-50%);
+  width:10%;height:10%;border-radius:50%;
+  border:2px solid #ffe3a3;box-shadow:0 0 21px #e6c37a,0 0 0 4px #e8c17855;
+  animation:royalRipple .55s ease-out forwards;
+}
+.royal-capture-fx {
+  border-color:#f8d5aa;background:#d3463529;
+  box-shadow:0 0 28px #e66b4da8,0 0 0 5px #d25a3b4d;
+  animation:royalCapture .7s cubic-bezier(.12,.67,.24,.99) forwards;
+}
+.sr-only {
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:-1px!important;overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+}
+.history-piece-icon {display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.history-piece-icon img {width:24px;height:24px;object-fit:contain}
+.board-node:focus-visible {outline:2px solid #fff5c2;outline-offset:2px;box-shadow:0 0 0 5px #7046239c}
+.royal-mode-btn:focus-visible {outline:3px solid #fbe0aa;outline-offset:2px}
+@keyframes royalRipple {
+  0%{opacity:.9;scale:.55}
+  90%{opacity:.24;scale:1.85}
+  100%{opacity:0;scale:2}
+}
+@keyframes royalCapture {
+  0%{opacity:1;scale:.3}
+  30%{opacity:1;scale:1.3}
+  100%{opacity:0;scale:2.9}
+}
+@media(prefers-reduced-motion:reduce){.royal-move-fx,.royal-capture-fx{animation:none;display:none}}

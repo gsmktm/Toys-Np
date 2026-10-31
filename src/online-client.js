@@ -25,13 +25,15 @@ export class OnlineClient {
     this.onEvent=onEvent;this.onState=onState;this.socket=null;
     this.url='';this.stopped=true;this.retries=0;this.timer=null;
     this.status='offline';this.profile=null;this.token=null;
-    try{this.token=localStorage.getItem(TOKEN_KEY);}catch{}
+    // Tokens are scoped to each server; never send a credential to an invite's unrelated host.
+    this.token=null;
   }
   setStatus(status,message=''){this.status=status;this.onState?.(status,message);}
   connect(rawUrl){
     const url=validateServerUrl(rawUrl);
     this.stop(false);
     this.url=url;this.stopped=false;
+    try{this.token=localStorage.getItem(TOKEN_KEY+':'+encodeURIComponent(url));}catch{this.token=null;}
     try{localStorage.setItem(SERVER_KEY,url);}catch{}
     this.open();return url;
   }
@@ -50,7 +52,7 @@ export class OnlineClient {
       let msg;try{msg=JSON.parse(event.data);}catch{return;}
       if(msg.type==='welcome'){
         this.token=msg.token;this.profile=msg.profile;
-        try{localStorage.setItem(TOKEN_KEY,this.token);}catch{}
+        try{localStorage.setItem(TOKEN_KEY+':'+encodeURIComponent(this.url),this.token);}catch{}
       }
       if(msg.type==='profile')this.profile=msg.profile;
       this.onEvent?.(msg);

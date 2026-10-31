@@ -152,7 +152,7 @@ function doMove(move,source='ui') {
   if (log.length>120) log.shift();
   selected=null;hint=null;
   beep(move.capture!==null ? 'capture':'move');
-  if(source!=='ble'&&bluetooth.connected)bluetooth.move(move).catch(()=>{});
+  if(bluetooth.connected){bluetooth.latestGame=game;if(source!=='ble')bluetooth.move(move).catch(()=>{});}
   persist();render();
   if (game.winner) finish();
   else scheduleAi();
@@ -323,6 +323,7 @@ function newGame(message) {
   if(settings.mode==='online' && networkRoom){notify(t('noRoom')+' — '+t('leaveRoom'));return;}
   cancelAi();game=initialGame();timeline=[];log=[];selected=null;hint=null;
   $('winOverlay').hidden=true;
+  if(bluetooth.connected)bluetooth.reset().then(()=>bluetooth.sync(game)).catch(()=>{});
   persist();render();scheduleAi();
   if (message) notify(t(message));
 }
@@ -557,7 +558,7 @@ function wire() {
   $('hintBtn').addEventListener('click',showHint);
   $('langSelect').addEventListener('change',ev=>{settings.lang=ev.target.value;persist();render();});
   $('soundBtn').addEventListener('click',()=>{settings.sound=!settings.sound;persist();render();if(settings.sound)beep('select');});
-  $('modeSelect').addEventListener('change',ev=>{if(settings.mode==='online'&&networkRoom)network.send({type:'leave'});networkRoom=null;networkQueued=false;settings.mode=ev.target.value;if(settings.mode==='online')bluetooth.disconnect();newGame('settingsChanged');});
+  $('modeSelect').addEventListener('change',ev=>{if(settings.mode==='online'){if(networkRoom)network.send({type:'leave'});network.stop();}networkRoom=null;networkQueued=false;settings.mode=ev.target.value;if(settings.mode==='online')bluetooth.disconnect();newGame('settingsChanged');});
   $('sideSelect').addEventListener('change',ev=>{settings.human=ev.target.value;newGame('settingsChanged');});
   $('difficultySelect').addEventListener('change',ev=>{settings.difficulty=ev.target.value;persist();render();});
   wireOnline();

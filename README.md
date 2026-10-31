@@ -1,4 +1,4 @@
-# KTM TOYS Nepal — बाघचाल (Baghchal)
+बाघचाल (Baghchal)
 
 A complete, responsive **Tigers & Goats** strategy game from Nepal, with an authoritative online server and optional BLE-compatible physical board integration. The original repository contained only a short README; this game is the first playable application.
 

@@ -362,6 +362,189 @@ function finish() {
   }
   beep('capture');
 }
+
+function onNetworkStatus(status,message='') {
+  networkStatus=status;
+  if(message && status==='error')notify(message);
+  renderNetworkPanel();
+}
+function onNetworkEvent(msg) {
+  if(msg.type==='welcome') {
+    $('playerName').value=msg.profile.name;
+    $('playerCountry').value=msg.profile.country;
+    network.send({type:'leaderboard'});
+    if(inviteCode && !networkRoom){
+      network.send({type:'join',code:inviteCode.toUpperCase()});
+      inviteCode=null;
+    }
+    renderNetworkPanel();
+  } else if(msg.type==='snapshot') {
+    const previous=networkRoom?.game?.ply ?? -1;
+    const previouslyWon=!!networkRoom?.game?.winner;
+    networkRoom=msg.room;
+    networkQueued=false;
+    game=msg.room.game;
+    log=msg.room.log||[];
+    timeline=[];selected=null;hint=null;
+    if(game.ply!==previous && previous>=0)beep(game.lastMove?.capture!==null?'capture':'move');
+    render();
+    if(game.winner&&!previouslyWon && settings.mode==='online')finish();
+    if(!game.winner)$('winOverlay').hidden=true;
+  } else if(msg.type==='queue') {
+    networkQueued=!!msg.waiting;
+    renderNetworkPanel();
+  } else if(msg.type==='left') {
+    networkRoom=null;networkQueued=false;game=initialGame();log=[];timeline=[];
+    selected=null;hint=null;$('winOverlay').hidden=true;render();
+  } else if(msg.type==='error') {
+    notify('Online: '+String(msg.code||'unknown_error').replaceAll('_',' '));
+    renderNetworkPanel();
+  } else if(msg.type==='leaderboard') {
+    networkPlayers=Array.isArray(msg.players)?msg.players:[];
+    renderRankings();
+  } else if(msg.type==='rating'){
+    notify('Elo '+(msg.delta>0?'+':'')+msg.delta);
+    network.send({type:'leaderboard'});
+  } else if(msg.type==='profile'){
+    renderNetworkPanel();
+  }
+}
+function formatTime(ms){
+  const seconds=Math.max(0,Math.ceil(ms/1000));
+  return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+}
+function renderRankings(){
+  const list=$('leaderboardRows');
+  list.replaceChildren();
+  if(!networkPlayers.length){
+    const p=document.createElement('p');p.className='setup-note';p.textContent=t('rankEmpty');list.appendChild(p);return;
+  }
+  for(let i=0;i<networkPlayers.length;i++) {
+    const p=networkPlayers[i],row=document.createElement('div');row.className='rank-row';
+    const position=document.createElement('strong');position.textContent=String(i+1).padStart(2,'0');
+    const player=document.createElement('span');player.textContent=p.name+' · '+p.country;
+    const score=document.createElement('b');score.textContent=String(p.rating);
+    row.append(position,player,score);list.appendChild(row);
+  }
+}
+function renderRoomPlayers(){
+  const panel=$('roomPlayers');
+  if(!networkRoom){panel.replaceChildren();return;}
+  const room=networkRoom,clock=room.clock;
+  panel.replaceChildren();
+  for(const side of [GOAT,TIGER]){
+    const p=room.players[side];
+    const row=document.createElement('div');row.className='room-player';
+    const label=document.createElement('span');
+    label.textContent=(side===GOAT?'🐐 ':'🐯 ')+(p?p.name+' · '+p.country:t('waitingOpponent'))+(p&&!p.connected?' · offline':'');
+    const timer=document.createElement('strong');timer.id='clock-'+side;
+    timer.textContent=formatTime(clock.remaining[side]);
+    row.append(label,timer);panel.appendChild(row);
+  }
+  const bottom=document.createElement('p');bottom.className='setup-note';
+  bottom.textContent=(room.ranked?t('rankedMatch'):t('casualMatch'))+' · '+
+    (room.mySide? t('yourSide')+': '+t(room.mySide):t('watching'))+' · '+
+    new Intl.DateTimeFormat(settings.lang==='ne'?'ne-NP':undefined,
+      {hour:'2-digit',minute:'2-digit',timeZoneName:'short'}).format(new Date(room.createdAt));
+  panel.appendChild(bottom);
+}
+function updateClockLabels(){
+  if(!networkRoom||networkRoom.status!=='active')return;
+  const clock=networkRoom.clock;
+  const remaining={...clock.remaining};
+  remaining[networkRoom.game.turn]=Math.max(0,
+    remaining[networkRoom.game.turn]-(Date.now()-(clock.receivedAt||Date.now())));
+  for(const side of [GOAT,TIGER]) {
+    const el=$('clock-'+side);
+    if(el)el.textContent=formatTime(remaining[side]);
+  }
+}
+function renderNetworkPanel(){
+  const panel=$('onlinePanel');
+  if(!panel)return;
+  const online=networkStatus==='online',room=networkRoom;
+  setText('connectionStatus',networkStatus.toUpperCase());
+  $('connectionStatus').classList.toggle('thinking',networkStatus==='connecting'||networkStatus==='reconnecting');
+  const busy=!!room||networkQueued;
+  for(const id of ['quickBtn','createRoomBtn','joinBtn','spectateBtn'])
+    $(id).disabled=!online||busy;
+  $('profileBtn').disabled=!online;
+  $('roomInfo').hidden=!room;
+  $('cancelQueueBtn').hidden=!networkQueued;
+  $('resignBtn').hidden=!room||room.status!=='active'||!room.mySide;
+  $('rematchBtn').hidden=!room||room.status!=='complete'||room.ranked||!room.mySide;
+  $('leaveRoomBtn').hidden=!room;
+  $('copyInviteBtn').hidden=!room;
+  if(room){
+    setText('roomCodeLabel',room.code);
+    renderRoomPlayers();
+    setText('networkHint',room.status==='waiting'?t('waitingOpponent'):
+      room.status==='active'?(room.mySide&&game.turn===room.mySide?t('yourMove'):t('theirMove')):
+      t('matchFinished'));
+  }else {
+    setText('networkHint',networkQueued?t('waitingOpponent'):
+      networkStatus==='online'?t('onlineWait'):t('serverRequired'));
+  }
+  $('bluetoothConnectBtn').disabled=!bluetooth.supported||bluetooth.connected||settings.mode==='online';
+  $('bluetoothDisconnectBtn').disabled=!bluetooth.connected;
+}
+function onBluetoothMove(incoming){
+  if(settings.mode==='online'||!canHumanPlay())return;
+  const move=legalMoves(game).find(m=>m.from===incoming.from&&m.to===incoming.to);
+  if(!move)return;
+  doMove(move,'ble');
+}
+function onBluetoothStatus(status){
+  setText('bluetoothStatus',status.toUpperCase());
+  if($('bluetoothConnectBtn'))renderNetworkPanel();
+}
+function wireOnline(){
+  $('connectBtn').addEventListener('click',()=>{
+    const address=$('serverAddress').value.trim();
+    if(!address){notify(t('serverRequired'));return;}
+    try{
+      networkRoom=null;networkQueued=false;
+      network.connect(address);
+    }catch(e){notify(e.message||t('connectionFailed'));}
+  });
+  $('profileBtn').addEventListener('click',()=>{
+    if(!network.send({type:'profile',name:$('playerName').value,country:$('playerCountry').value.toUpperCase()}))
+      notify(t('connectionFailed'));
+  });
+  $('quickBtn').addEventListener('click',()=>network.send({type:'quick'}));
+  $('createRoomBtn').addEventListener('click',()=>network.send({type:'create',side:$('sideSelect').value}));
+  $('joinBtn').addEventListener('click',()=>network.send({type:'join',code:$('joinCode').value.toUpperCase().trim()}));
+  $('spectateBtn').addEventListener('click',()=>network.send({type:'spectate',code:$('joinCode').value.toUpperCase().trim()}));
+  $('cancelQueueBtn').addEventListener('click',()=>network.send({type:'cancelQueue'}));
+  $('resignBtn').addEventListener('click',()=>{
+    if(window.confirm(settings.lang==='ne'?'खेल हार स्वीकार गर्ने?':'Resign this match?'))network.send({type:'resign'});
+  });
+  $('leaveRoomBtn').addEventListener('click',()=>{
+    if(networkRoom?.status==='active'&&
+       !window.confirm(settings.lang==='ne'?'कोठा छोड्दा हार हुनेछ। जारी राख्ने?':'Leaving an active game forfeits the match. Continue?'))return;
+    network.send({type:'leave'});
+  });
+  $('rematchBtn').addEventListener('click',()=>network.send({type:'rematch'}));
+  $('refreshRanksBtn').addEventListener('click',()=>network.send({type:'leaderboard'}));
+  $('copyInviteBtn').addEventListener('click',async()=>{
+    if(!networkRoom)return;
+    const url=new URL(location.href);
+    url.searchParams.set('room',networkRoom.code);
+    url.searchParams.set('server',network.url);
+    try{await navigator.clipboard.writeText(url.href);notify(t('inviteCopied'));}
+    catch{notify(url.href);}
+  });
+  $('bluetoothConnectBtn').addEventListener('click',async()=>{
+    try{
+      if(settings.mode==='online'){notify(t('bleUnavailable'));return;}
+      await bluetooth.connect(game);notify(t('pairSuccess'));
+    }catch(e){notify(e?.message||t('pairFailure'));}
+    renderNetworkPanel();
+  });
+  $('bluetoothDisconnectBtn').addEventListener('click',()=>bluetooth.disconnect());
+  window.setInterval(updateClockLabels,1000);
+}
+
 function wire() {
   $('rulesBtn').addEventListener('click',()=>$('rulesDialog').showModal());
   $('closeRulesBtn').addEventListener('click',()=>$('rulesDialog').close());
@@ -374,7 +557,7 @@ function wire() {
   $('hintBtn').addEventListener('click',showHint);
   $('langSelect').addEventListener('change',ev=>{settings.lang=ev.target.value;persist();render();});
   $('soundBtn').addEventListener('click',()=>{settings.sound=!settings.sound;persist();render();if(settings.sound)beep('select');});
-  $('modeSelect').addEventListener('change',ev=>{if(settings.mode==='online'&&networkRoom)network.send({type:'leave'});networkRoom=null;networkQueued=false;settings.mode=ev.target.value;newGame('settingsChanged');});
+  $('modeSelect').addEventListener('change',ev=>{if(settings.mode==='online'&&networkRoom)network.send({type:'leave'});networkRoom=null;networkQueued=false;settings.mode=ev.target.value;if(settings.mode==='online')bluetooth.disconnect();newGame('settingsChanged');});
   $('sideSelect').addEventListener('change',ev=>{settings.human=ev.target.value;newGame('settingsChanged');});
   $('difficultySelect').addEventListener('change',ev=>{settings.difficulty=ev.target.value;persist();render();});
   wireOnline();

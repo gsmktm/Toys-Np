@@ -33,7 +33,7 @@ Baghchal has regional variations in capture targets and repetition outcomes. Thi
 
 ## Deploy with GitHub Pages
 
-In GitHub repository settings, go to **Pages → Build and deployment → Deploy from a branch**, select the default branch and **/(root)**, and save. The site can then be served from `https://gsmktm.github.io/Toys-Np/` once GitHub Pages has finished publishing. This is a suggested URL, not a claim that hosting is enabled.
+In GitHub repository settings, go to **Pages → Build and deployment → Deploy from a branch**, select the default branch and **/(root)**, and save. The site can then be served from `https://gsmktm.github.io/Baghchal/` once GitHub Pages has finished publishing. This is a suggested URL, not a claim that hosting is enabled.
 
 The site uses relative paths, so it also works from a custom domain or subpath. For a domain, point hosting at this static repository.
 
@@ -106,3 +106,30 @@ Only valid rules-engine moves are applied. This feature is a hardware integratio
 - `src/bluetooth.js` — BLE GATT board/controller connection and compact board protocol.
 - `src/intl-extra.js` — additional international language packs.
 - `tests/online.test.js` — server protocol tests.
+
+
+## Royal Nepal Design · Baghchal UI v3
+
+The royal design system is implemented in `royal.css` as a separate presentation layer over the original game CSS. Game rules, API messages, AI, matchmaking and BLE device protocols are unchanged.
+
+### Original Nepal identity artwork
+
+- `icons/royal-crest.svg`: an **original Shreepech-inspired** heraldic crest with ॐ, the moon and sun, antique gold and crimson detailing. It is decorative, not a claim to be an official royal insignia.
+- `icons/himalaya-royal.svg`: original SVG Himalayan mountain illustration for the hero backdrop.
+- `images/royal-baghchal-banner.svg`: original 1200×630 promotional banner for the game collection.
+- `icons/tiger-piece.svg` and `icons/goat-piece.svg`: original, crisp vector playing pieces used on the live board, the player turn panel and game history.
+- `royal.css`: color/design tokens, wood-and-gold board, carved-wood presentation, responsive royal controls, victory styling and a reduced-motion alternative.
+
+### Royal UX additions
+
+- Three large mode shortcuts: Solo Court (AI), Royal Duel (two people on one device), World Arena (online server).
+- All buttons connect to the existing game mode switch and preserve the original server-side safeguards.
+- Move and capture rings animate independently of the legality engine.
+- Arrow-key navigation works between all 25 game intersections; Enter/Space activates a legal position.
+- A separate polite live-region announces moves to assistive technology.
+- Small-screen layout keeps the board square, text contrast legible, and touch targets reachable.
+- The `Royal` layer only changes presentation; no cross/church imagery.
+
+### QA
+
+Run `npm test`. HTTP integration tests now verify the royal stylesheet and SVG icons are actually served. GitHub Pages requires new offline cached assets to load once after publishing. Hardware and browser visual QA should be performed on target devices before a production marketing launch.

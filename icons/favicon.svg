@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-<rect width="96" height="96" rx="22" fill="#152638"/>
-<rect x="7" y="7" width="82" height="82" rx="17" fill="none" stroke="#d7af6b" stroke-width="3"/>
-<path d="M24 25L37 17L48 26L59 17L72 25L69 56Q66 77 48 79Q30 77 27 56Z" fill="#ce8e4d"/>
-<path d="M30 32L41 43L37 53L26 48M66 32L55 43L59 53L70 48" fill="none" stroke="#593a2a" stroke-width="5"/>
-<path d="M33 54L41 57M63 54L55 57" stroke="#162639" stroke-width="5" stroke-linecap="round"/>
-<path d="M41 65L48 70L55 65L48 62Z" fill="#1b2835"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff3c9"/><stop offset=".58" stop-color="#d9a55f"/><stop offset="1" stop-color="#ac723d"/></linearGradient></defs><rect width="96" height="96" rx="20" fill="#0d1b30"/><rect x="5" y="5" width="86" height="86" rx="17" fill="none" stroke="url(#g)" stroke-width="2"/><path d="M15 65L12 35L29 46L36 30L48 50L60 30L67 46L84 35L81 65Z" fill="#203047" stroke="url(#g)" stroke-width="3" stroke-linejoin="round"/><path d="M18 62H78V76Q48 88 18 76Z" fill="#9d3546" stroke="url(#g)" stroke-width="3"/><path d="M48 42L57 58L48 72L39 58Z" fill="#b33c46" stroke="#f3d39c" stroke-width="2"/><circle cx="48" cy="58" r="4" fill="#fef1cb"/><text x="48" y="27" font-size="22" fill="#f4d79a" text-anchor="middle" font-family="serif">ॐ</text></svg>

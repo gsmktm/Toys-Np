@@ -52,6 +52,20 @@ test('HTTP server + real WebSocket handshake, rooms, move validation, and API he
   assert.equal(health.ok,true);
   assert.equal(health.protocol,1);
   assert.equal((await fetch(root+'/src/main.js')).status,200);
+  const page=await (await fetch(root+'/')).text();
+  assert.match(page,/royal.css/);
+  assert.match(page,/royal-crest.svg/);
+  assert.match(page,/data-play-mode="online"/);
+  assert.match(page,/id="moveAnnouncer"/);
+  for (const asset of [
+    '/royal.css','/icons/royal-crest.svg','/icons/tiger-piece.svg',
+    '/icons/goat-piece.svg','/icons/himalaya-royal.svg',
+    '/images/royal-baghchal-banner.svg'
+  ]) {
+    const response=await fetch(root+asset);
+    assert.equal(response.status,200,'royal asset should load: '+asset);
+    assert.ok((await response.text()).length>100,asset+' must not be empty');
+  }
   assert.equal((await fetch(root+'/src/intl-extra.js')).status,200);
   assert.equal((await fetch(root+'/server/hub.js')).status,404);
   assert.equal((await fetch(root+'/api/leaderboard')).status,200);

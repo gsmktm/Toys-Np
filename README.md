@@ -33,7 +33,7 @@ Baghchal has regional variations in capture targets and repetition outcomes. Thi
 
 ## Deploy with GitHub Pages
 
-In GitHub repository settings, go to **Pages → Build and deployment → Deploy from a branch**, select the default branch and **/(root)**, and save. The site can then be served from `https://gsmktm.github.io/Toys-Np/` once GitHub Pages has finished publishing. This is a suggested URL, not a claim that hosting is enabled.
+In GitHub repository settings, go to **Pages → Build and deployment → Deploy from a branch**, select the default branch and **/(root)**, and save. The site can then be served from `https://gsmktm.github.io/Baghchal/` once GitHub Pages has finished publishing. This is a suggested URL, not a claim that hosting is enabled.
 
 The site uses relative paths, so it also works from a custom domain or subpath. For a domain, point hosting at this static repository.
 

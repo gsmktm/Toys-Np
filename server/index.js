@@ -13,7 +13,9 @@ const production=process.env.NODE_ENV==='production';
 const routes=new Map([
   ['/','index.html'],['/index.html','index.html'],['/styles.css','styles.css'],
   ['/src/engine.js','src/engine.js'],['/src/ai.js','src/ai.js'],
-  ['/src/main.js','src/main.js'],['/src/online-client.js','src/online-client.js'],
+  ['/royal.css','royal.css'],['/icons/royal-crest.svg','icons/royal-crest.svg'],
+  ['/icons/tiger-piece.svg','icons/tiger-piece.svg'],['/icons/goat-piece.svg','icons/goat-piece.svg'],
+  ['/icons/himalaya-royal.svg','icons/himalaya-royal.svg'],['/src/main.js','src/main.js'],['/src/online-client.js','src/online-client.js'],
   ['/src/bluetooth.js','src/bluetooth.js'],['/src/intl-extra.js','src/intl-extra.js'],
   ['/sw.js','sw.js'],['/manifest.webmanifest','manifest.webmanifest'],
   ['/icons/favicon.svg','icons/favicon.svg']

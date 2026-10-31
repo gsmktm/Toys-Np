@@ -1,0 +1,375 @@
+import { initialGame, applyMove, legalMoves, rowCol, GOAT, TIGER } from './engine.js';
+import { chooseMove } from './ai.js';
+
+const STORAGE = 'ktm-toys-baghchal-v1';
+const defaults = { mode:'ai', human:GOAT, difficulty:'medium', lang:'ne', sound:true };
+const $ = id => document.getElementById(id);
+let settings = { ...defaults }, game = initialGame(), timeline = [], log = [];
+let selected = null, hint = null, thinking = false, aiTimer = null, toastTimer = null;
+const pieceNodes = new Map(), cellNodes = [];
+const strings = {
+  en: {
+    heritage:'MADE IN NEPAL', howTo:'How to play',heroEyebrow:'THE HIMALAYAN STRATEGY COLLECTION',heroTitle:'बाघचाल',
+    heroSubtitle:'THE TIGER & GOAT GAME',heroDescription:'Four tigers. Twenty goats. A timeless battle of instinct and intelligence, born in the hills of Nepal.',
+    tigersCaps:'TIGERS',goatsCaps:'GOATS',pointsCaps:'POINTS',boardEyebrow:'THE ROYAL ARENA',boardTitle:'The battlefield',
+    arenaTop:'ANCIENT NEPAL · 5 × 5',arenaBottom:'PATIENCE · COURAGE · STRATEGY',undo:'Undo move',
+    hint:'Show hint',soundOn:'Sound on',soundOff:'Sound off',newGame:'New game',currentTurn:'CURRENT TURN',
+    gamePhase:'GAME PHASE',matchOverview:'MATCH OVERVIEW',goatsPlaced:'Goats placed',goatsCaptured:'Goats captured',
+    movesPlayed:'Moves played',gameSettings:'GAME SETTINGS',playMode:'PLAY MODE',vsComputer:'Vs. computer',
+    twoPlayers:'Two players (local)',yourSide:'YOUR SIDE',difficulty:'DIFFICULTY',goats:'Goats 🐐',
+    tigers:'Tigers 🐯',easy:'Easy',medium:'Medium',hard:'Hard',
+    setupNote:'Changing players starts a fresh match. Your progress is saved only on this device.',
+    recentMoves:'RECENT MOVES',heritageNote:'A treasured game of Nepal — where tigers hunt, goats unite, and every move tells a story.',
+    footerText:'Crafted for the next generation. Rooted in tradition.',learnGame:'LEARN THE GAME',rulesTitle:'How to play Baghchal',
+    rule1Title:'Set the board',rule1:'Four tigers begin at the corners. All twenty goats begin off the board. Goats move first.',
+    rule2Title:'Place the goats',rule2:'Place one goat on an empty intersection each goat turn. Goats cannot move until all twenty have been placed.',
+    rule3Title:'Move and capture',rule3:'A tiger moves along one line, or jumps over one goat into an empty point to capture it. No double jumps.',
+    rule4Title:'Claim victory',rule4:'Tigers win by capturing five goats. Goats win by blocking every tiger. The game is a draw on threefold repetition.',
+    startPlaying:"LET'S PLAY ✦",matchFinished:'MATCH FINISHED',playAgain:'PLAY AGAIN ↻',viewBoard:'View board',
+    vsAi:'VS COMPUTER',local:'LOCAL TWO PLAYER',yourMove:'YOUR MOVE',aiThinking:'THINKING',theirMove:'PLAYER TURN',
+    tigerTurn:'Tigers to play',goatTurn:'Goats to play',placeGoat:'Tap an empty point to place a goat.',
+    moveGoat:'Select a goat, then an adjacent empty point.',moveTiger:'Move a tiger or jump a goat to capture it.',
+    waitAi:'Your opponent is choosing a move…',placement:'Goat placement',movement:'Movement phase',
+    winnerGoat:'The goats win!',winnerTiger:'The tigers win!',draw:'It is a draw!',
+    winnerGoatDesc:'The herd held together. Every tiger has been trapped.',
+    winnerTigerDesc:'Five goats have been captured. The tigers rule the board.',
+    drawDesc:'The same position was repeated three times.',
+    capture:'Captured',place:'Placed',move:'Moved',noMoves:'No moves yet. The story begins with you.',
+    hintsUnavailable:'No legal move available.',undoEmpty:'No move to undo yet.',undoDone:'Move undone.',
+    newStarted:'New match started.',settingsChanged:'New match with updated players.',hintReady:'Highlighted your suggested move.',
+    restartHint:'Select a piece, then a glowing point.',ai:'Computer',goat:'Goat',tiger:'Tiger',drawLabel:'Draw',
+    row:'row',column:'column',from:'from',to:'to'
+  },
+  ne: {
+    heritage:'नेपालको मौलिक खेल',howTo:'खेल्ने तरिका',heroEyebrow:'हिमालयको रणनीतिक खेल परम्परा',
+    heroTitle:'बाघचाल',heroSubtitle:'बाघ र बाख्राको बुद्धिको खेल',
+    heroDescription:'चार बाघ। बीस बाख्रा। नेपाली माटोमा जन्मिएको साहस, धैर्य र रणनीतिको अनुपम खेल।',
+    tigersCaps:'बाघ',goatsCaps:'बाख्रा',pointsCaps:'चौकी',boardEyebrow:'परम्परागत खेल मैदान',
+    boardTitle:'खेलको मैदान',arenaTop:'नेपाली मौलिक खेल · ५ × ५',arenaBottom:'धैर्य · साहस · रणनीति',
+    undo:'चाल फिर्ता',hint:'चाल सुझाव',soundOn:'ध्वनि चालु',soundOff:'ध्वनि बन्द',newGame:'नयाँ खेल',
+    currentTurn:'अहिलेको पालो',gamePhase:'खेलको चरण',matchOverview:'खेलको अवस्था',
+    goatsPlaced:'राखिएका बाख्रा',goatsCaptured:'खाइएका बाख्रा',movesPlayed:'खेलिएका चाल',
+    gameSettings:'खेलको विकल्प',playMode:'खेल्ने तरिका',vsComputer:'कम्प्युटरसँग',
+    twoPlayers:'दुई खेलाडी (एउटै यन्त्र)',yourSide:'आफ्नो पक्ष',difficulty:'कठिनाइ',
+    goats:'बाख्रा 🐐',tigers:'बाघ 🐯',easy:'सजिलो',medium:'मध्यम',hard:'कठिन',
+    setupNote:'खेलाडी परिवर्तन गर्दा नयाँ खेल सुरु हुन्छ। प्रगति यही यन्त्रमा सुरक्षित रहन्छ।',
+    recentMoves:'पछिल्ला चाल',heritageNote:'नेपालको मौलिक बाघचाल — बाघले सिकार गर्छ, बाख्राले एकता देखाउँछ।',
+    footerText:'परम्पराको जरा, नयाँ पुस्ताको खेल।',learnGame:'खेल सिकौँ',rulesTitle:'बाघचाल कसरी खेल्ने?',
+    rule1Title:'खेलको सुरुवात',rule1:'चार बाघ चार कुनामा बस्छन्। बीस बाख्रा बाहिर रहन्छन्। पहिलो पालो बाख्राको हुन्छ।',
+    rule2Title:'बाख्रा राख्ने',rule2:'हरेक पालोमा खाली चौकीमा एउटा बाख्रा राख्नुहोस्। सबै २० बाख्रा नराखेसम्म तिनलाई सार्न मिल्दैन।',
+    rule3Title:'बाघको चाल',rule3:'बाघले रेखाको छेउको खाली चौकीमा चाल चल्छ वा एउटा बाख्रा नाघेर खाली ठाउँमा पुगेमा त्यसलाई खान्छ। एउटै चालमा एक सिकार।',
+    rule4Title:'जित कसरी हुन्छ?',rule4:'पाँच बाख्रा खाए बाघ जित्छ। सबै बाघको चाल रोकिए बाख्रा जित्छन्। उही अवस्था तीन पटक दोहोरिए बराबरी हुन्छ।',
+    startPlaying:'खेल सुरु गरौँ ✦',matchFinished:'खेल समाप्त',playAgain:'फेरि खेलौँ ↻',viewBoard:'मैदान हेर्नुहोस्',
+    vsAi:'कम्प्युटरसँग',local:'दुई खेलाडी',yourMove:'तपाईंको पालो',aiThinking:'सोच्दैछ…',
+    theirMove:'खेलाडीको पालो',tigerTurn:'बाघको पालो',goatTurn:'बाख्राको पालो',
+    placeGoat:'खाली चौकीमा थिचेर एउटा बाख्रा राख्नुहोस्।',
+    moveGoat:'बाख्रा छानेर रेखाले जोडिएको खाली चौकीमा सार्नुहोस्।',
+    moveTiger:'बाघ छानेर सार्नुहोस् वा बाख्रा नाघेर सिकार गर्नुहोस्।',
+    waitAi:'कम्प्युटर चाल सोच्दैछ…',placement:'बाख्रा राख्ने चरण',movement:'चाल सार्ने चरण',
+    winnerGoat:'बाख्राको विजय!',winnerTiger:'बाघको विजय!',draw:'खेल बराबरी!',
+    winnerGoatDesc:'सबै बाघको बाटो रोकियो। बाख्राको एकता विजयी भयो।',
+    winnerTigerDesc:'पाँच बाख्रा खाइयो। बाघ विजयी भयो।',
+    drawDesc:'उही अवस्था तीन पटक दोहोरिएको छ।',
+    capture:'सिकार',place:'राख्यो',move:'सार्‍यो',noMoves:'अहिलेसम्म चाल चलेको छैन। पहिलो चाल तपाईंको।',
+    hintsUnavailable:'कुनै सम्भव चाल छैन।',undoEmpty:'फिर्ता गर्न मिल्ने चाल छैन।',undoDone:'चाल फिर्ता गरियो।',
+    newStarted:'नयाँ खेल सुरु भयो।',settingsChanged:'नयाँ खेलाडीअनुसार खेल सुरु भयो।',
+    hintReady:'सुझाव गरिएको चाल देखाइएको छ।',restartHint:'गोटी छानेर चम्किएको चौकीमा थिच्नुहोस्।',
+    ai:'कम्प्युटर',goat:'बाख्रा',tiger:'बाघ',drawLabel:'बराबरी',row:'पंक्ति',column:'स्तम्भ',from:'बाट',to:'सम्म'
+  }
+};
+const t = key => strings[settings.lang][key] || key;
+function stored() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE) || '{}');
+    if (parsed.settings && ['ne','en'].includes(parsed.settings.lang) &&
+        ['ai','local'].includes(parsed.settings.mode) &&
+        [GOAT,TIGER].includes(parsed.settings.human) &&
+        ['easy','medium','hard'].includes(parsed.settings.difficulty)) {
+      settings = { ...defaults, ...parsed.settings, sound: parsed.settings.sound !== false };
+    }
+    if (parsed.game && Array.isArray(parsed.game.board) && parsed.game.board.length === 25 &&
+        [GOAT,TIGER].includes(parsed.game.turn) &&
+        Number.isInteger(parsed.game.goatsPlaced) && parsed.game.goatsPlaced >= 0 &&
+        parsed.game.goatsPlaced <= 20 && Number.isInteger(parsed.game.goatsCaptured) &&
+        parsed.game.goatsCaptured >= 0 && parsed.game.goatsCaptured <= 5) {
+      game = parsed.game;
+      timeline = Array.isArray(parsed.timeline) ? parsed.timeline.slice(-120) : [];
+      log = Array.isArray(parsed.log) ? parsed.log.slice(-120) : [];
+    }
+  } catch (_) { /* storage may be disabled or corrupted */ }
+}
+function persist() {
+  try { localStorage.setItem(STORAGE,JSON.stringify({ settings, game, timeline, log })); } catch (_) {}
+}
+function coord(n) { return 10 + n * 20 + '%'; }
+function nameOf(p) { const [r,c]=rowCol(p); return String.fromCharCode(65 + c) + (5-r); }
+function diagram() {
+  const elements = [];
+  for (let n=0;n<5;n++) {
+    const p=100+n*200;
+    elements.push('<line x1="100" y1="'+p+'" x2="900" y2="'+p+'"/>');
+    elements.push('<line x1="'+p+'" y1="100" x2="'+p+'" y2="900"/>');
+  }
+  for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+    const x=100+c*200,y=100+r*200;
+    if ((r+c)%2===0) elements.push('<line x1="'+x+'" y1="'+y+'" x2="'+(x+200)+'" y2="'+(y+200)+'"/>');
+    else elements.push('<line x1="'+(x+200)+'" y1="'+y+'" x2="'+x+'" y2="'+(y+200)+'"/>');
+  }
+  const rings = [];
+  for (let r=0;r<5;r++) for (let c=0;c<5;c++)
+    rings.push('<circle cx="'+(100+c*200)+'" cy="'+(100+r*200)+'" r="12"/>');
+  $('geometry').innerHTML = '<g class="board-lines">'+elements.join('')+'</g><g class="board-rings">'+rings.join('')+'</g>';
+  for (let i=0;i<25;i++) {
+    const [r,c]=rowCol(i);
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='board-node';
+    btn.style.left=coord(c);btn.style.top=coord(r);
+    btn.dataset.cell=String(i);
+    btn.addEventListener('click',()=>clickCell(i));
+    $('nodes').appendChild(btn);
+    cellNodes.push(btn);
+  }
+}
+function canHumanPlay() { return !thinking && !game.winner && (settings.mode === 'local' || game.turn === settings.human); }
+function doMove(move) {
+  timeline.push(game);
+  if (timeline.length>120) timeline.shift();
+  try { game=applyMove(game,move); }
+  catch (_) { timeline.pop(); return; }
+  log.push({ ...move, side:game.lastMove.side, ply:game.ply });
+  if (log.length>120) log.shift();
+  selected=null;hint=null;
+  beep(move.capture!==null ? 'capture':'move');
+  persist();render();
+  if (game.winner) finish();
+  else scheduleAi();
+}
+function clickCell(pos) {
+  if (!canHumanPlay()) return;
+  const options=legalMoves(game);
+  const piece=game.board[pos];
+  if (game.turn===GOAT && game.goatsPlaced<20) {
+    const placement=options.find(m=>m.from===null && m.to===pos);
+    if (placement) doMove(placement);
+    return;
+  }
+  if (selected!==null) {
+    const move=options.find(m=>m.from===selected && m.to===pos);
+    if (move) { doMove(move);return; }
+  }
+  if (piece && piece.side===game.turn) {
+    selected=selected===pos ? null : pos;
+    hint=null;
+    beep('select');
+  } else { selected=null;hint=null; }
+  render();
+}
+function renderPieces() {
+  const onBoard=new Set();
+  game.board.forEach((piece,index)=>{
+    if (!piece) return;
+    onBoard.add(piece.id);
+    let node=pieceNodes.get(piece.id);
+    if (!node) {
+      node=document.createElement('div');
+      node.className='piece piece-'+piece.side+' piece-enter';
+      node.dataset.piece=piece.id;
+      node.innerHTML = '<span class="piece-icon">'+(piece.side===TIGER ? '🐯':'🐐')+
+        '</span><span class="piece-sheen"></span>';
+      $('pieces').appendChild(node);
+      pieceNodes.set(piece.id,node);
+      requestAnimationFrame(()=>node.classList.remove('piece-enter'));
+    }
+    const [r,c]=rowCol(index);
+    node.style.left=coord(c);node.style.top=coord(r);
+    node.classList.toggle('piece-selected',selected===index);
+    node.classList.toggle('piece-hint',!!hint && hint.from===index);
+    node.classList.remove('piece-leaving');
+  });
+  for (const [id,node] of pieceNodes) {
+    if (onBoard.has(id)) continue;
+    pieceNodes.delete(id);
+    node.classList.add('piece-leaving');
+    setTimeout(()=>node.remove(),340);
+  }
+}
+function renderBoard() {
+  const moves=canHumanPlay() ? legalMoves(game) : [];
+  const dest=new Set(selected!==null ? moves.filter(m=>m.from===selected).map(m=>m.to) : []);
+  for (let i=0;i<25;i++) {
+    const node=cellNodes[i],piece=game.board[i], legal=dest.has(i);
+    node.className='board-node';
+    if (legal) node.classList.add('node-legal');
+    if (selected===i) node.classList.add('node-selected');
+    if (hint && (hint.to===i || hint.from===i)) node.classList.add(hint.to===i?'node-hint-to':'node-hint-from');
+    if (game.lastMove?.to===i) node.classList.add('node-last');
+    if (game.lastMove?.from===i) node.classList.add('node-last-from');
+    node.disabled=!canHumanPlay();
+    node.setAttribute('aria-pressed',String(selected===i));
+    node.setAttribute('aria-label',nameOf(i)+', '+(piece?(piece.side===TIGER?t('tiger'):t('goat')): 'empty')+(legal?', legal move':''));
+  }
+  renderPieces();
+}
+function setText(id,value) { $(id).textContent=String(value); }
+function renderHistory() {
+  const list=$('moveHistory');
+  list.replaceChildren();
+  const recent=log.slice(-7).reverse();
+  if (!recent.length) {
+    const li=document.createElement('li');li.className='empty-history';li.textContent=t('noMoves');list.appendChild(li);return;
+  }
+  for (const entry of recent) {
+    const li=document.createElement('li');li.className='history-entry';
+    const num=document.createElement('span');num.className='history-num';num.textContent=String(entry.ply).padStart(2,'0');
+    const action=document.createElement('span');action.className='history-action';
+    const icon=document.createElement('span');icon.textContent=entry.side===TIGER?'🐯':'🐐';
+    const text=document.createElement('span');
+    text.textContent=entry.from===null ?
+      t('place')+' '+nameOf(entry.to) :
+      nameOf(entry.from)+' → '+nameOf(entry.to)+(entry.capture!==null?' · '+t('capture'):'');
+    action.append(icon,text);li.append(num,action);list.appendChild(li);
+  }
+}
+function translate() {
+  document.documentElement.lang=settings.lang;
+  document.querySelectorAll('[data-t]').forEach(el=>{ const key=el.dataset.t;el.textContent=t(key); });
+  $('langBtn').textContent=settings.lang==='ne'?'EN':'ने';
+  $('langBtn').setAttribute('aria-label',settings.lang==='ne'?'Switch to English':'नेपालीमा बदल्नुहोस्');
+}
+function render() {
+  translate();
+  const phase = game.goatsPlaced<20 ? t('placement'):t('movement');
+  const ai = settings.mode==='ai' && game.turn!==settings.human && !game.winner;
+  setText('modeLabel',t(settings.mode==='ai'?'vsAi':'local'));
+  setText('phaseValue',phase);
+  setText('turnTitle',game.turn===GOAT?t('goatTurn'):t('tigerTurn'));
+  setText('turnAvatar',game.turn===GOAT?'🐐':'🐯');
+  $('turnAvatar').className='player-medallion '+(game.turn===TIGER?'tiger-medallion':'');
+  setText('turnDesc',game.winner?t('matchFinished'): ai?t('waitAi'):
+    game.turn===TIGER?t('moveTiger'):game.goatsPlaced<20?t('placeGoat'):t('moveGoat'));
+  setText('statusBadge',game.winner?t('matchFinished'): ai?t('aiThinking'):
+    settings.mode==='ai'?t('yourMove'):t('theirMove'));
+  $('statusBadge').classList.toggle('thinking',ai);
+  setText('placedCount',game.goatsPlaced);
+  setText('capturedCount',game.goatsCaptured);
+  setText('moveCount',String(game.ply).padStart(2,'0'));
+  // The denominator remains styled separately from the changing count.
+  $('placedCount').insertAdjacentHTML('beforeend','<span>/20</span>');
+  $('capturedCount').insertAdjacentHTML('beforeend','<span>/5</span>');
+  $('placementMeter').style.width=(game.goatsPlaced/20*100)+'%';
+  $('captureMeter').style.width=(game.goatsCaptured/5*100)+'%';
+  $('sideField').hidden=settings.mode==='local';
+  $('difficultyField').hidden=settings.mode==='local';
+  $('undoBtn').disabled=timeline.length===0 || thinking;
+  $('hintBtn').disabled=thinking || !!game.winner;
+  $('soundBtn').setAttribute('aria-pressed',String(settings.sound));
+  setText('soundIcon',settings.sound?'♪':'♫');
+  setText('soundLabel',settings.sound?t('soundOn'):t('soundOff'));
+  setText('boardHelp',game.winner?t('matchFinished') : thinking?t('waitAi') :
+    selected!==null?t('restartHint'):game.turn===GOAT&&game.goatsPlaced<20?t('placeGoat'):
+    game.turn===GOAT?t('moveGoat'):t('moveTiger'));
+  renderBoard();renderHistory();
+}
+function beep(kind) {
+  if (!settings.sound) return;
+  try {
+    const Context=window.AudioContext||window.webkitAudioContext;
+    if (!Context) return;
+    const ctx=beep.context || (beep.context=new Context());
+    if (ctx.state==='suspended') ctx.resume().catch(()=>{});
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type=kind==='capture'?'triangle':'sine';
+    osc.frequency.setValueAtTime(kind==='capture'?280:kind==='select'?580:430,ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(kind==='capture'?140:620,ctx.currentTime+.12);
+    gain.gain.setValueAtTime(.001,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.055,ctx.currentTime+.012);
+    gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.17);
+    osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.18);
+  } catch (_) { /* sound must never interrupt play */ }
+}
+function notify(msg) {
+  const toast=$('toast');toast.textContent=msg;toast.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),2800);
+}
+function cancelAi() { if (aiTimer!==null) clearTimeout(aiTimer);aiTimer=null;thinking=false; }
+function scheduleAi() {
+  if (settings.mode!=='ai'||game.winner||game.turn===settings.human) return;
+  cancelAi();thinking=true;render();
+  aiTimer=setTimeout(()=>{
+    aiTimer=null;
+    if (settings.mode!=='ai'||game.winner||game.turn===settings.human) {thinking=false;render();return;}
+    const move=chooseMove(game,settings.difficulty);
+    thinking=false;
+    if (move) doMove(move);
+    else render();
+  },420);
+}
+function newGame(message) {
+  cancelAi();game=initialGame();timeline=[];log=[];selected=null;hint=null;
+  $('winOverlay').hidden=true;
+  persist();render();scheduleAi();
+  if (message) notify(t(message));
+}
+function undo() {
+  if (thinking) cancelAi();
+  if (!timeline.length) {notify(t('undoEmpty'));render();return;}
+  do {
+    game=timeline.pop();log.pop();
+  } while (settings.mode==='ai'&&game.turn!==settings.human&&timeline.length);
+  selected=null;hint=null;$('winOverlay').hidden=true;
+  persist();render();scheduleAi();notify(t('undoDone'));
+}
+function showHint() {
+  if (!canHumanPlay()) return;
+  hint=chooseMove(game,'hard');
+  selected=hint?.from??null;
+  render();
+  notify(t(hint?'hintReady':'hintsUnavailable'));
+}
+function finish() {
+  const win=game.winner;
+  setText('winGlyph',win===GOAT?'🐐':win===TIGER?'🐯':'✦');
+  setText('winTitle',t(win===GOAT?'winnerGoat':win===TIGER?'winnerTiger':'draw'));
+  setText('winDescription',t(win===GOAT?'winnerGoatDesc':win===TIGER?'winnerTigerDesc':'drawDesc'));
+  $('winOverlay').hidden=false;
+  const bits=$('confetti');bits.replaceChildren();
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (let i=0;i<36;i++) {
+      const p=document.createElement('i');
+      p.style.left=(Math.random()*100)+'%';
+      p.style.animationDelay=(Math.random()*1.4)+'s';
+      p.style.animationDuration=(2+Math.random()*2)+'s';
+      p.style.background=i%3===0?'#b76a43':i%2?'#f7d28b':'#d2dfe6';
+      bits.appendChild(p);
+    }
+  }
+  beep('capture');
+}
+function wire() {
+  $('rulesBtn').addEventListener('click',()=>$('rulesDialog').showModal());
+  $('closeRulesBtn').addEventListener('click',()=>$('rulesDialog').close());
+  $('rulesPlayBtn').addEventListener('click',()=>$('rulesDialog').close());
+  $('rulesDialog').addEventListener('click',ev=>{if(ev.target===$('rulesDialog')) $('rulesDialog').close();});
+  $('newBtn').addEventListener('click',()=>newGame('newStarted'));
+  $('rematchBtn').addEventListener('click',()=>newGame('newStarted'));
+  $('closeWinBtn').addEventListener('click',()=>$('winOverlay').hidden=true);
+  $('undoBtn').addEventListener('click',undo);
+  $('hintBtn').addEventListener('click',showHint);
+  $('langBtn').addEventListener('click',()=>{settings.lang=settings.lang==='ne'?'en':'ne';persist();render();});
+  $('soundBtn').addEventListener('click',()=>{settings.sound=!settings.sound;persist();render();if(settings.sound)beep('select');});
+  $('modeSelect').addEventListener('change',ev=>{settings.mode=ev.target.value;newGame('settingsChanged');});
+  $('sideSelect').addEventListener('change',ev=>{settings.human=ev.target.value;newGame('settingsChanged');});
+  $('difficultySelect').addEventListener('change',ev=>{settings.difficulty=ev.target.value;persist();render();});
+  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){selected=null;hint=null;render();}});
+}
+stored();
+diagram();
+$('modeSelect').value=settings.mode;
+$('sideSelect').value=settings.human;
+$('difficultySelect').value=settings.difficulty;
+wire();render();
+if (game.winner) finish(); else scheduleAi();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}

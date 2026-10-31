@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ne">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101927">
+  <meta name="description" content="बाघचाल — Nepal's timeless Tigers & Goats strategy game. Play against the computer or a friend, free and offline.">
+  <meta property="og:title" content="बाघचाल | KTM TOYS Nepal">
+  <meta property="og:description" content="The Himalayan game of strategy. 4 tigers. 20 goats. One legendary board.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <title>बाघचाल | KTM TOYS — Tigers & Goats</title>
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="KTM TOYS Baghchal Home">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span class="brand-stack"><strong>KTM<span>TOYS</span></strong><small>NEPAL · HIMALAYAN GAMES</small></span>
+      </a>
+      <nav class="nav-actions" aria-label="Quick actions">
+        <span class="heritage-pill"><span class="pulse-dot"></span><span data-t="heritage">MADE IN NEPAL</span> <span aria-hidden="true">🇳🇵</span></span>
+        <button class="nav-btn" id="langBtn" type="button" aria-label="Switch language">EN</button>
+        <button class="nav-btn nav-rules" id="rulesBtn" type="button"><span aria-hidden="true">ⓘ</span> <span data-t="howTo">How to play</span></button>
+      </nav>
+    </header>
+
+    <section class="hero" aria-label="Introduction">
+      <div class="hero-brow"><span class="hero-line"></span><span data-t="heroEyebrow">THE HIMALAYAN STRATEGY COLLECTION</span></div>
+      <h1><span data-t="heroTitle">बाघचाल</span> <span class="hero-star" aria-hidden="true">✳</span></h1>
+      <div class="hero-copy"><span class="hero-english">BAGH CHAL</span><span class="hero-divider"></span><span data-t="heroSubtitle">THE TIGER & GOAT GAME</span></div>
+      <p class="hero-description" data-t="heroDescription">Four tigers. Twenty goats. A timeless battle of instinct and intelligence, born in the hills of Nepal.</p>
+      <div class="hero-foot"><span>04 <span data-t="tigersCaps">TIGERS</span></span><i></i><span>20 <span data-t="goatsCaps">GOATS</span></span><i></i><span>25 <span data-t="pointsCaps">POINTS</span></span></div>
+    </section>
+
+    <main class="game-layout" id="game" aria-label="Baghchal game">
+      <section class="game-main">
+        <div class="board-heading">
+          <div><span class="eyebrow" data-t="boardEyebrow">THE ROYAL ARENA</span><h2 data-t="boardTitle">The battlefield</h2></div>
+          <span class="mode-tag"><span class="live-dot"></span><span id="modeLabel">VS COMPUTER</span></span>
+        </div>
+
+        <div class="arena-frame">
+          <div class="arena-corner corner-tl" aria-hidden="true">✦</div>
+          <div class="arena-corner corner-tr" aria-hidden="true">✦</div>
+          <div class="arena-corner corner-bl" aria-hidden="true">✦</div>
+          <div class="arena-corner corner-br" aria-hidden="true">✦</div>
+          <div class="arena-topline"><span>✦</span><span data-t="arenaTop">ANCIENT NEPAL · 5 × 5</span><span>✦</span></div>
+          <div class="board" id="board" role="group" aria-label="Baghchal 5 by 5 board">
+            <svg id="geometry" class="geometry" viewBox="0 0 1000 1000" aria-hidden="true" focusable="false"></svg>
+            <div id="nodes" class="nodes"></div>
+            <div id="pieces" class="pieces" aria-hidden="true"></div>
+          </div>
+          <div class="arena-bottomline"><span>◆</span><span data-t="arenaBottom">PATIENCE · COURAGE · STRATEGY</span><span>◆</span></div>
+        </div>
+
+        <div class="action-bar" role="group" aria-label="Game actions">
+          <button class="action-button" id="undoBtn" type="button"><span class="action-icon">↶</span><span data-t="undo">Undo move</span></button>
+          <button class="action-button" id="hintBtn" type="button"><span class="action-icon">✧</span><span data-t="hint">Show hint</span></button>
+          <button class="action-button" id="soundBtn" type="button" aria-pressed="true"><span id="soundIcon" class="action-icon">♪</span><span id="soundLabel" data-t="soundOn">Sound on</span></button>
+          <button class="action-button action-primary" id="newBtn" type="button"><span class="action-icon">↻</span><span data-t="newGame">New game</span></button>
+        </div>
+        <p class="board-help" id="boardHelp" aria-live="polite"></p>
+      </section>
+
+      <aside class="sidebar" aria-label="Game dashboard">
+        <section class="panel turn-panel">
+          <div class="panel-top"><span class="eyebrow" data-t="currentTurn">CURRENT TURN</span><span id="statusBadge" class="status-badge">YOUR MOVE</span></div>
+          <div class="player-row">
+            <span class="player-medallion" id="turnAvatar">🐐</span>
+            <div class="player-copy"><h2 id="turnTitle">Goats to play</h2><p id="turnDesc">Place a goat on any empty point.</p></div>
+          </div>
+          <div class="phase-banner"><span class="phase-icon">◈</span><div><small data-t="gamePhase">GAME PHASE</small><strong id="phaseValue">Placement phase</strong></div><span class="phase-arrows">››</span></div>
+        </section>
+
+        <section class="panel score-panel">
+          <div class="panel-top"><span class="eyebrow" data-t="matchOverview">MATCH OVERVIEW</span><span class="micro-mark">01 / 02</span></div>
+          <div class="score-grid">
+            <div class="score-tile goat-tile"><div class="score-label"><span>🐐</span><span data-t="goatsPlaced">Goats placed</span></div><strong id="placedCount">0<span>/20</span></strong><div class="meter"><div id="placementMeter" class="meter-fill goat-fill"></div></div></div>
+            <div class="score-tile tiger-tile"><div class="score-label"><span>🐯</span><span data-t="goatsCaptured">Goats captured</span></div><strong id="capturedCount">0<span>/5</span></strong><div class="meter"><div id="captureMeter" class="meter-fill tiger-fill"></div></div></div>
+          </div>
+          <div class="move-count"><span data-t="movesPlayed">Moves played</span><strong id="moveCount">00</strong></div>
+        </section>
+
+        <section class="panel setup-panel">
+          <div class="panel-top"><span class="eyebrow" data-t="gameSettings">GAME SETTINGS</span><span class="micro-mark">02 / 02</span></div>
+          <label class="field"><span data-t="playMode">PLAY MODE</span><select id="modeSelect"><option value="ai" data-t="vsComputer">Vs. computer</option><option value="local" data-t="twoPlayers">Two players (local)</option></select></label>
+          <div class="fields-two">
+            <label class="field" id="sideField"><span data-t="yourSide">YOUR SIDE</span><select id="sideSelect"><option value="goat" data-t="goats">Goats 🐐</option><option value="tiger" data-t="tigers">Tigers 🐯</option></select></label>
+            <label class="field" id="difficultyField"><span data-t="difficulty">DIFFICULTY</span><select id="difficultySelect"><option value="easy" data-t="easy">Easy</option><option value="medium" data-t="medium">Medium</option><option value="hard" data-t="hard">Hard</option></select></label>
+          </div>
+          <p class="setup-note" data-t="setupNote">Changing players starts a fresh match. All games stay on your device.</p>
+        </section>
+
+        <section class="panel history-panel">
+          <div class="panel-top"><span class="eyebrow" data-t="recentMoves">RECENT MOVES</span><span class="history-icon">↗</span></div>
+          <ol id="moveHistory" class="history-list" aria-label="Recent moves"></ol>
+        </section>
+        <div class="heritage-note"><span>✳</span><p data-t="heritageNote">A treasured game of Nepal — where tigers hunt, goats unite, and every move tells a story.</p></div>
+      </aside>
+    </main>
+
+    <footer class="footer"><span>KTM TOYS <i>✦</i> NEPAL</span><span data-t="footerText">Crafted for the next generation. Rooted in tradition.</span></footer>
+  </div>
+
+  <dialog id="rulesDialog" class="rules-dialog" aria-labelledby="rulesTitle">
+    <div class="dialog-head"><div><span class="eyebrow" data-t="learnGame">LEARN THE GAME</span><h2 id="rulesTitle" data-t="rulesTitle">How to play Baghchal</h2></div><button class="dialog-close" id="closeRulesBtn" aria-label="Close rules" type="button">✕</button></div>
+    <div class="rules-grid">
+      <article class="rule-item"><span class="rule-number">01</span><h3 data-t="rule1Title">Set the board</h3><p data-t="rule1">Four tigers begin at the corners. All twenty goats begin off the board. Goats move first.</p></article>
+      <article class="rule-item"><span class="rule-number">02</span><h3 data-t="rule2Title">Place the goats</h3><p data-t="rule2">Place one goat on an empty intersection each goat turn. Goats cannot move until all twenty have been placed.</p></article>
+      <article class="rule-item"><span class="rule-number">03</span><h3 data-t="rule3Title">Move and capture</h3><p data-t="rule3">A tiger moves along one line, or jumps over one goat into an empty point to capture it. No double jumps.</p></article>
+      <article class="rule-item"><span class="rule-number">04</span><h3 data-t="rule4Title">Claim victory</h3><p data-t="rule4">Tigers win by capturing five goats. Goats win by blocking every tiger. The game is a draw on threefold repetition.</p></article>
+    </div>
+    <button id="rulesPlayBtn" class="dialog-action" type="button" data-t="startPlaying">LET'S PLAY ✦</button>
+  </dialog>
+  <div id="winOverlay" class="win-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+    <div class="win-card"><div class="win-glyph" id="winGlyph">🏆</div><div class="eyebrow" data-t="matchFinished">MATCH FINISHED</div><h2 id="winTitle">Victory!</h2><p id="winDescription"></p><button class="dialog-action" id="rematchBtn" type="button" data-t="playAgain">PLAY AGAIN ↻</button><button class="win-close" id="closeWinBtn" type="button" data-t="viewBoard">View board</button></div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

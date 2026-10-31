@@ -1,0 +1,11 @@
+{
+  "name": "बाघचाल — KTM TOYS Nepal",
+  "short_name": "बाघचाल",
+  "description": "Nepal's Tigers and Goats strategy game",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c1621",
+  "theme_color": "#101927",
+  "icons": [{ "src": "./icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

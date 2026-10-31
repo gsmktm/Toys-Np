@@ -331,6 +331,7 @@ function render() {
   $('leaderboardPanel').hidden=settings.mode!=='online';
   $('bluetoothPanel').hidden=settings.mode==='online';
   $('undoBtn').disabled=timeline.length===0 || thinking || settings.mode==='online';
+  $('newBtn').disabled=settings.mode==='online'&&!!networkRoom;
   $('hintBtn').disabled=thinking || !!game.winner || settings.mode==='online';
   $('soundBtn').setAttribute('aria-pressed',String(settings.sound));
   setText('soundIcon',settings.sound?'♪':'♫');
@@ -534,7 +535,7 @@ function renderNetworkPanel(){
   $('roomInfo').hidden=!room;
   $('cancelQueueBtn').hidden=!networkQueued;
   $('resignBtn').hidden=!room||room.status!=='active'||!room.mySide;
-  $('rematchBtn').hidden=!room||room.status!=='complete'||room.ranked||!room.mySide;
+  $('onlineRematchBtn').hidden=!room||room.status!=='complete'||room.ranked||!room.mySide;
   $('leaveRoomBtn').hidden=!room;
   $('copyInviteBtn').hidden=!room;
   if(room){
@@ -588,7 +589,7 @@ function wireOnline(){
        !window.confirm(settings.lang==='ne'?'कोठा छोड्दा हार हुनेछ। जारी राख्ने?':'Leaving an active game forfeits the match. Continue?'))return;
     network.send({type:'leave'});
   });
-  $('rematchBtn').addEventListener('click',()=>network.send({type:'rematch'}));
+  $('onlineRematchBtn').addEventListener('click',()=>network.send({type:'rematch'}));
   $('refreshRanksBtn').addEventListener('click',()=>network.send({type:'leaderboard'}));
   $('copyInviteBtn').addEventListener('click',async()=>{
     if(!networkRoom)return;
@@ -638,13 +639,41 @@ function wire() {
   $('rulesPlayBtn').addEventListener('click',()=>$('rulesDialog').close());
   $('rulesDialog').addEventListener('click',ev=>{if(ev.target===$('rulesDialog')) $('rulesDialog').close();});
   $('newBtn').addEventListener('click',()=>newGame('newStarted'));
-  $('rematchBtn').addEventListener('click',()=>newGame('newStarted'));
+  $('rematchBtn').addEventListener('click',()=>{
+    if(settings.mode==='online' && networkRoom){
+      if(networkRoom.ranked){
+        network.send({type:'leave'});
+        $('winOverlay').hidden=true;
+        notify(t('royalWorld'));
+      }else{
+        network.send({type:'rematch'});
+        $('winOverlay').hidden=true;
+        notify(t('waitingOpponent'));
+      }
+    }else newGame('newStarted');
+  });
   $('closeWinBtn').addEventListener('click',()=>$('winOverlay').hidden=true);
   $('undoBtn').addEventListener('click',undo);
   $('hintBtn').addEventListener('click',showHint);
   $('langSelect').addEventListener('change',ev=>{settings.lang=ev.target.value;persist();render();});
   $('soundBtn').addEventListener('click',()=>{settings.sound=!settings.sound;persist();render();if(settings.sound)beep('select');});
-  $('modeSelect').addEventListener('change',ev=>{if(settings.mode==='online'){if(networkRoom)network.send({type:'leave'});network.stop();}networkRoom=null;networkQueued=false;settings.mode=ev.target.value;if(settings.mode==='online')bluetooth.disconnect();newGame('settingsChanged');});
+  $('modeSelect').addEventListener('change',ev=>{
+    const next=ev.target.value;
+    if(next===settings.mode)return;
+    if(settings.mode==='online'&&networkRoom?.status==='active'&&
+      !window.confirm(settings.lang==='ne'?'चालु अनलाइन खेल छोडेमा हार हुन सक्छ। बाहिरिने?':
+        'Leaving this live online match will forfeit the game. Continue?')){
+      ev.target.value=settings.mode;render();return;
+    }
+    if(settings.mode==='online'){
+      if(networkRoom)network.send({type:'leave'});
+      network.stop();
+    }
+    networkRoom=null;networkQueued=false;
+    settings.mode=next;
+    if(settings.mode==='online')bluetooth.disconnect();
+    newGame('settingsChanged');
+  });
   $('sideSelect').addEventListener('change',ev=>{settings.human=ev.target.value;newGame('settingsChanged');});
   $('difficultySelect').addEventListener('change',ev=>{settings.difficulty=ev.target.value;persist();render();});
   wireOnline();

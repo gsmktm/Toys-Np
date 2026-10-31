@@ -32,7 +32,7 @@ export class BluetoothBoard {
     await notify.startNotifications();
     notify.addEventListener('characteristicvaluechanged',event=>{
       const raw=decoder.decode(event.target.value).trim();
-      if(raw==='R'){if(game)this.sync(game).catch(()=>{});return;}
+      if(raw==='R'){if(this.latestGame)this.sync(this.latestGame).catch(()=>{});return;}
       const match=/^M:(-1|(?:[0-9]|1[0-9]|2[0-4])):(?:([0-9]|1[0-9]|2[0-4]))$/.exec(raw);
       if(match)this.onMove?.({from:Number(match[1])===-1?null:Number(match[1]),to:Number(match[2])});
     });
@@ -49,7 +49,7 @@ export class BluetoothBoard {
     this.pending=this.pending.catch(()=>{}).then(()=>this.write.writeValueWithResponse(bytes));
     return this.pending;
   }
-  async sync(game){return this.send(compactBoard(game));}
+  async sync(game){this.latestGame=game;return this.send(compactBoard(game));}
   async move(move){return this.send('M:'+(move.from??-1)+':'+move.to);}
   async reset(){return this.send('N');}
   disconnect(){

@@ -1,5 +1,8 @@
 import { initialGame, applyMove, legalMoves, rowCol, GOAT, TIGER } from './engine.js';
 import { chooseMove } from './ai.js';
+import { OnlineClient, defaultServerUrl } from './online-client.js';
+import { BluetoothBoard } from './bluetooth.js';
+import { extraLocales } from './intl-extra.js';
 
 const STORAGE = 'ktm-toys-baghchal-v1';
 const defaults = { mode:'ai', human:GOAT, difficulty:'medium', lang:'ne', sound:true };
@@ -7,6 +10,10 @@ const $ = id => document.getElementById(id);
 let settings = { ...defaults }, game = initialGame(), timeline = [], log = [];
 let selected = null, hint = null, thinking = false, aiTimer = null, toastTimer = null;
 const pieceNodes = new Map(), cellNodes = [];
+let networkRoom=null, networkQueued=false, networkPlayers=[], networkStatus='offline';
+let inviteCode=new URLSearchParams(location.search).get('room');
+const network=new OnlineClient(onNetworkEvent,onNetworkStatus);
+const bluetooth=new BluetoothBoard(onBluetoothMove,onBluetoothStatus);
 const strings = {
   en: {
     heritage:'MADE IN NEPAL', howTo:'How to play',heroEyebrow:'THE HIMALAYAN STRATEGY COLLECTION',heroTitle:'बाघचाल',
@@ -77,12 +84,15 @@ const strings = {
     ai:'कम्प्युटर',goat:'बाख्रा',tiger:'बाघ',drawLabel:'बराबरी',row:'पंक्ति',column:'स्तम्भ',from:'बाट',to:'सम्म'
   }
 };
-const t = key => strings[settings.lang][key] || key;
+Object.assign(strings,extraLocales);
+const t = key => strings[settings.lang]?.[key] || strings.en[key] || key;
+Object.assign(strings.en,{onlineMode:'Online · Worldwide',worldArena:'WORLD ARENA',onlineDescription:'Play with friends worldwide. Every move is verified by the server.',serverAddress:'SERVER ADDRESS · WSS',connectServer:'CONNECT TO WORLD ARENA',playerName:'PLAYER NAME',country:'COUNTRY (ISO 2)',saveProfile:'SAVE PROFILE',quickMatch:'⚡ QUICK MATCH',privateRoom:'✦ PRIVATE ROOM',joinCode:'6-CHARACTER ROOM CODE',joinRoom:'JOIN ROOM',spectate:'WATCH',roomCode:'ROOM',copyInvite:'COPY INVITE',resign:'RESIGN',leaveRoom:'LEAVE',rematch:'REMATCH',cancelSearch:'CANCEL SEARCH',bluetoothTitle:'BLUETOOTH BOARD',bluetoothDescription:'Connect a compatible BLE Baghchal board/controller using Chromium over HTTPS. Not phone-to-phone Bluetooth.',bluetoothConnect:'PAIR DEVICE',bluetoothDisconnect:'DISCONNECT',globalRankings:'GLOBAL GUEST RANKINGS',guestRankings:'Guest rankings are informal; no verified account is required.',onlineWait:'Find a match or wait for a friend to join.',onlineWaiting:'WAITING',notYourTurn:'Wait for the other player.',serverRequired:'Enter your secure multiplayer server URL first.',inviteCopied:'Invitation copied.',connectionFailed:'Could not connect to multiplayer server.',pairSuccess:'Bluetooth board connected.',pairFailure:'Bluetooth is unavailable or the device declined pairing.',bleUnavailable:'Compatible BLE board required on supported Chromium browser.',rankEmpty:'No ranked matches have finished yet.',waitingOpponent:'Waiting for another player…',rankedMatch:'Ranked match',casualMatch:'Friendly match',watching:'Watching',noRoom:'No active room',tigerTime:'Tiger',goatTime:'Goat'});
+Object.assign(strings.ne,{onlineMode:'विश्वव्यापी अनलाइन',worldArena:'विश्व खेल मैदान',onlineDescription:'विश्वभरका साथीसँग खेल्नुहोस्। हरेक चाल सर्भरले जाँच्छ।',serverAddress:'सर्भर ठेगाना · WSS',connectServer:'अनलाइन जोडिनुहोस्',playerName:'खेलाडीको नाम',country:'देश (ISO २ अक्षर)',saveProfile:'परिचय सुरक्षित',quickMatch:'⚡ तुरुन्त खेलौँ',privateRoom:'✦ निजी कोठा',joinCode:'६-अक्षर कोठा कोड',joinRoom:'कोठामा प्रवेश',spectate:'हेर्नुहोस्',roomCode:'कोठा',copyInvite:'निम्तो कपी',resign:'हार स्वीकार',leaveRoom:'बाहिरिनुहोस्',rematch:'फेरि खेलौँ',cancelSearch:'खोजी रोक्नुहोस्',bluetoothTitle:'ब्लुटुथ बोर्ड',bluetoothDescription:'HTTPS मा समर्थित Chromium बाट उपयुक्त BLE बाघचाल बोर्डसँग जोड्नुहोस्। यो फोन–फोन ब्लुटुथ होइन।',bluetoothConnect:'उपकरण जोड्नुहोस्',bluetoothDisconnect:'छुट्याउनुहोस्',globalRankings:'विश्व अतिथि वरीयता',guestRankings:'यो अतिथि वरीयता हो; प्रमाणित खाता आवश्यक छैन।',onlineWait:'प्रतिद्वन्द्वी खोज्नुहोस् वा साथीको प्रतीक्षा गर्नुहोस्।',onlineWaiting:'प्रतीक्षामा',notYourTurn:'अर्को खेलाडीको पालो हो।',serverRequired:'पहिले सुरक्षित अनलाइन सर्भर ठेगाना राख्नुहोस्।',inviteCopied:'निम्तो कपी भयो।',connectionFailed:'अनलाइन सर्भरसँग जोडिन सकेन।',pairSuccess:'ब्लुटुथ बोर्ड जोडियो।',pairFailure:'ब्लुटुथ उपलब्ध छैन वा उपकरण जोडिएन।',bleUnavailable:'समर्थित Chromium र उपयुक्त BLE बोर्ड आवश्यक छ।',rankEmpty:'अहिलेसम्म वरीयताको खेल सकिएको छैन।',waitingOpponent:'अर्को खेलाडीको प्रतीक्षा…',rankedMatch:'वरीयता खेल',casualMatch:'मैत्रीपूर्ण खेल',watching:'दर्शक',noRoom:'खेल कोठा छैन',tigerTime:'बाघ',goatTime:'बाख्रा'});
 function stored() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE) || '{}');
-    if (parsed.settings && ['ne','en'].includes(parsed.settings.lang) &&
-        ['ai','local'].includes(parsed.settings.mode) &&
+    if (parsed.settings && ['ne','en','es','fr','de','zh','ja'].includes(parsed.settings.lang) &&
+        ['ai','local','online'].includes(parsed.settings.mode) &&
         [GOAT,TIGER].includes(parsed.settings.human) &&
         ['easy','medium','hard'].includes(parsed.settings.difficulty)) {
       settings = { ...defaults, ...parsed.settings, sound: parsed.settings.sound !== false };
@@ -99,7 +109,7 @@ function stored() {
   } catch (_) { /* storage may be disabled or corrupted */ }
 }
 function persist() {
-  try { localStorage.setItem(STORAGE,JSON.stringify({ settings, game, timeline, log })); } catch (_) {}
+  try { localStorage.setItem(STORAGE,JSON.stringify({ settings, game:settings.mode==='online'?initialGame():game, timeline:settings.mode==='online'?[]:timeline, log:settings.mode==='online'?[]:log })); } catch (_) {}
 }
 function coord(n) { return 10 + n * 20 + '%'; }
 function nameOf(p) { const [r,c]=rowCol(p); return String.fromCharCode(65 + c) + (5-r); }
@@ -131,8 +141,9 @@ function diagram() {
     cellNodes.push(btn);
   }
 }
-function canHumanPlay() { return !thinking && !game.winner && (settings.mode === 'local' || game.turn === settings.human); }
-function doMove(move) {
+function canHumanPlay() { if(settings.mode==='online')return networkStatus==='online'&&networkRoom?.status==='active'&&networkRoom.mySide===game.turn&&!game.winner;return !thinking&&!game.winner&&(settings.mode==='local'||game.turn===settings.human); }
+function handleMove(move){if(settings.mode==='online'){if(!network.send({type:'move',version:networkRoom?.version,from:move.from,to:move.to}))notify(t('connectionFailed'));selected=null;render();return;}doMove(move);}
+function doMove(move,source='ui') {
   timeline.push(game);
   if (timeline.length>120) timeline.shift();
   try { game=applyMove(game,move); }
@@ -141,6 +152,7 @@ function doMove(move) {
   if (log.length>120) log.shift();
   selected=null;hint=null;
   beep(move.capture!==null ? 'capture':'move');
+  if(source!=='ble'&&bluetooth.connected)bluetooth.move(move).catch(()=>{});
   persist();render();
   if (game.winner) finish();
   else scheduleAi();
@@ -151,12 +163,12 @@ function clickCell(pos) {
   const piece=game.board[pos];
   if (game.turn===GOAT && game.goatsPlaced<20) {
     const placement=options.find(m=>m.from===null && m.to===pos);
-    if (placement) doMove(placement);
+    if (placement) handleMove(placement);
     return;
   }
   if (selected!==null) {
     const move=options.find(m=>m.from===selected && m.to===pos);
-    if (move) { doMove(move);return; }
+    if (move) { handleMove(move);return; }
   }
   if (piece && piece.side===game.turn) {
     selected=selected===pos ? null : pos;
@@ -234,22 +246,21 @@ function renderHistory() {
 function translate() {
   document.documentElement.lang=settings.lang;
   document.querySelectorAll('[data-t]').forEach(el=>{ const key=el.dataset.t;el.textContent=t(key); });
-  $('langBtn').textContent=settings.lang==='ne'?'EN':'ने';
-  $('langBtn').setAttribute('aria-label',settings.lang==='ne'?'Switch to English':'नेपालीमा बदल्नुहोस्');
+  $('langSelect').value=settings.lang;
 }
 function render() {
   translate();
   const phase = game.goatsPlaced<20 ? t('placement'):t('movement');
   const ai = settings.mode==='ai' && game.turn!==settings.human && !game.winner;
-  setText('modeLabel',t(settings.mode==='ai'?'vsAi':'local'));
+  setText('modeLabel',t(settings.mode==='ai'?'vsAi':settings.mode==='online'?'onlineMode':'local'));
   setText('phaseValue',phase);
   setText('turnTitle',game.turn===GOAT?t('goatTurn'):t('tigerTurn'));
   setText('turnAvatar',game.turn===GOAT?'🐐':'🐯');
   $('turnAvatar').className='player-medallion '+(game.turn===TIGER?'tiger-medallion':'');
-  setText('turnDesc',game.winner?t('matchFinished'): ai?t('waitAi'):
+  setText('turnDesc',game.winner?t('matchFinished'): settings.mode==='online' && networkRoom?.status!=='active'?t('onlineWait'):ai?t('waitAi'):
     game.turn===TIGER?t('moveTiger'):game.goatsPlaced<20?t('placeGoat'):t('moveGoat'));
-  setText('statusBadge',game.winner?t('matchFinished'): ai?t('aiThinking'):
-    settings.mode==='ai'?t('yourMove'):t('theirMove'));
+  setText('statusBadge',game.winner?t('matchFinished'):settings.mode==='online' && networkRoom?.status!=='active'?t('onlineWaiting'):ai?t('aiThinking'):
+    settings.mode==='ai'||(settings.mode==='online'&&canHumanPlay())?t('yourMove'):t('theirMove'));
   $('statusBadge').classList.toggle('thinking',ai);
   setText('placedCount',game.goatsPlaced);
   setText('capturedCount',game.goatsCaptured);
@@ -260,16 +271,19 @@ function render() {
   $('placementMeter').style.width=(game.goatsPlaced/20*100)+'%';
   $('captureMeter').style.width=(game.goatsCaptured/5*100)+'%';
   $('sideField').hidden=settings.mode==='local';
-  $('difficultyField').hidden=settings.mode==='local';
-  $('undoBtn').disabled=timeline.length===0 || thinking;
-  $('hintBtn').disabled=thinking || !!game.winner;
+  $('difficultyField').hidden=settings.mode!=='ai';
+  $('onlinePanel').hidden=settings.mode!=='online';
+  $('leaderboardPanel').hidden=settings.mode!=='online';
+  $('bluetoothPanel').hidden=settings.mode==='online';
+  $('undoBtn').disabled=timeline.length===0 || thinking || settings.mode==='online';
+  $('hintBtn').disabled=thinking || !!game.winner || settings.mode==='online';
   $('soundBtn').setAttribute('aria-pressed',String(settings.sound));
   setText('soundIcon',settings.sound?'♪':'♫');
   setText('soundLabel',settings.sound?t('soundOn'):t('soundOff'));
   setText('boardHelp',game.winner?t('matchFinished') : thinking?t('waitAi') :
     selected!==null?t('restartHint'):game.turn===GOAT&&game.goatsPlaced<20?t('placeGoat'):
     game.turn===GOAT?t('moveGoat'):t('moveTiger'));
-  renderBoard();renderHistory();
+  renderBoard();renderHistory();renderNetworkPanel();
 }
 function beep(kind) {
   if (!settings.sound) return;
@@ -306,12 +320,14 @@ function scheduleAi() {
   },420);
 }
 function newGame(message) {
+  if(settings.mode==='online' && networkRoom){notify(t('noRoom')+' — '+t('leaveRoom'));return;}
   cancelAi();game=initialGame();timeline=[];log=[];selected=null;hint=null;
   $('winOverlay').hidden=true;
   persist();render();scheduleAi();
   if (message) notify(t(message));
 }
 function undo() {
+  if(settings.mode==='online')return;
   if (thinking) cancelAi();
   if (!timeline.length) {notify(t('undoEmpty'));render();return;}
   do {
@@ -321,7 +337,7 @@ function undo() {
   persist();render();scheduleAi();notify(t('undoDone'));
 }
 function showHint() {
-  if (!canHumanPlay()) return;
+  if (settings.mode==='online'||!canHumanPlay()) return;
   hint=chooseMove(game,'hard');
   selected=hint?.from??null;
   render();
@@ -356,20 +372,25 @@ function wire() {
   $('closeWinBtn').addEventListener('click',()=>$('winOverlay').hidden=true);
   $('undoBtn').addEventListener('click',undo);
   $('hintBtn').addEventListener('click',showHint);
-  $('langBtn').addEventListener('click',()=>{settings.lang=settings.lang==='ne'?'en':'ne';persist();render();});
+  $('langSelect').addEventListener('change',ev=>{settings.lang=ev.target.value;persist();render();});
   $('soundBtn').addEventListener('click',()=>{settings.sound=!settings.sound;persist();render();if(settings.sound)beep('select');});
-  $('modeSelect').addEventListener('change',ev=>{settings.mode=ev.target.value;newGame('settingsChanged');});
+  $('modeSelect').addEventListener('change',ev=>{if(settings.mode==='online'&&networkRoom)network.send({type:'leave'});networkRoom=null;networkQueued=false;settings.mode=ev.target.value;newGame('settingsChanged');});
   $('sideSelect').addEventListener('change',ev=>{settings.human=ev.target.value;newGame('settingsChanged');});
   $('difficultySelect').addEventListener('change',ev=>{settings.difficulty=ev.target.value;persist();render();});
+  wireOnline();
   document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){selected=null;hint=null;render();}});
 }
 stored();
+$('serverAddress').value=new URLSearchParams(location.search).get('server')||defaultServerUrl();
+if(inviteCode && !/^[A-Za-z2-9]{6}$/.test(inviteCode))inviteCode=null;
+if(inviteCode)$('joinCode').value=inviteCode.toUpperCase();
 diagram();
 $('modeSelect').value=settings.mode;
 $('sideSelect').value=settings.human;
 $('difficultySelect').value=settings.difficulty;
 wire();render();
-if (game.winner) finish(); else scheduleAi();
+if(settings.mode!=='online'){if(game.winner)finish();else scheduleAi();}
+if(settings.mode==='online' && defaultServerUrl() && !inviteCode){try{network.connect(defaultServerUrl());}catch{}}
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 }

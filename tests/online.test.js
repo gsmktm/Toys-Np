@@ -63,13 +63,14 @@ test('ranked matchmaking, resignation and Elo change',()=>{
   h.hub.dispatch(b,{type:'quick'});
   let room=h.last(a,'snapshot').room;
   assert.equal(room.ranked,true);
-  h.hub.dispatch(a,{type:'move',from:null,to:12,version:0});
-  h.hub.dispatch(b,{type:'move',from:0,to:5,version:1});
-  h.hub.dispatch(b,{type:'resign'});
+  // Deterministic matching puts B in the goat seat and A in the tiger seat.
+  h.hub.dispatch(b,{type:'move',from:null,to:12,version:0});
+  h.hub.dispatch(a,{type:'move',from:0,to:5,version:1});
+  h.hub.dispatch(a,{type:'resign'});
   room=h.last(a,'snapshot').room;
   assert.equal(room.status,'complete');
   assert.equal(room.game.winner,'goat');
-  assert.equal(h.last(a,'rating').delta,12);
+  assert.equal(h.last(b,'rating').delta,12);
 });
 test('spectator cannot submit moves; timeout is authoritative',()=>{
   const h=mk(),a=h.socket(),b=h.socket(),c=h.socket();

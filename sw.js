@@ -1,7 +1,7 @@
 // Small offline-first cache. Scope is relative to the app, including GitHub Pages subpaths.
-const CACHE='ktm-toys-baghchal-v2';
+const CACHE='ktm-toys-baghchal-v3';
 const ASSETS=['./','./index.html','./styles.css','./src/engine.js','./src/ai.js',
-  './src/main.js','./manifest.webmanifest','./icons/favicon.svg'];
+  './src/main.js','./src/online-client.js','./src/bluetooth.js','./src/intl-extra.js','./manifest.webmanifest','./icons/favicon.svg'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });

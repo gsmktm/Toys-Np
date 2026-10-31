@@ -10,6 +10,8 @@ const $ = id => document.getElementById(id);
 let settings = { ...defaults }, game = initialGame(), timeline = [], log = [];
 let selected = null, hint = null, thinking = false, aiTimer = null, toastTimer = null;
 const pieceNodes = new Map(), cellNodes = [];
+const art = {goat:'./icons/goat-piece.svg',tiger:'./icons/tiger-piece.svg',draw:'./icons/royal-crest.svg'};
+let lastAnnouncedPly = -1;
 let networkRoom=null, networkQueued=false, networkPlayers=[], networkStatus='offline';
 let inviteCode=new URLSearchParams(location.search).get('room');
 const network=new OnlineClient(onNetworkEvent,onNetworkStatus);
@@ -87,6 +89,14 @@ const strings = {
 Object.assign(strings,extraLocales);
 Object.assign(strings.en,{setupOnline:'International games and guest ratings are stored on the configured server. Offline games remain on your device.'});
 Object.assign(strings.ne,{setupOnline:'अनलाइन खेल र अतिथि वरीयता सम्बन्धित सर्भरमा सुरक्षित रहन्छन्। अफलाइन खेल आफ्नो यन्त्रमा रहन्छ।'});
+Object.assign(strings.en,{
+  royalSolo:'SOLO COURT',royalDuel:'ROYAL DUEL',royalWorld:'WORLD ARENA',
+  royalMove:'Royal move',royalCapture:'Tiger capture',royalPlacement:'Goat placed'
+});
+Object.assign(strings.ne,{
+  royalSolo:'एकल खेल',royalDuel:'दुई खेलाडी',royalWorld:'विश्व मैदान',
+  royalMove:'राजकीय चाल',royalCapture:'बाघको सिकार',royalPlacement:'बाख्रा राखियो'
+});
 const t = key => strings[settings.lang]?.[key] || strings.en[key] || key;
 Object.assign(strings.en,{onlineMode:'Online · Worldwide',worldArena:'WORLD ARENA',onlineDescription:'Play with friends worldwide. Every move is verified by the server.',serverAddress:'SERVER ADDRESS · WSS',connectServer:'CONNECT TO WORLD ARENA',playerName:'PLAYER NAME',country:'COUNTRY (ISO 2)',saveProfile:'SAVE PROFILE',quickMatch:'⚡ QUICK MATCH',privateRoom:'✦ PRIVATE ROOM',joinCode:'6-CHARACTER ROOM CODE',joinRoom:'JOIN ROOM',spectate:'WATCH',roomCode:'ROOM',copyInvite:'COPY INVITE',resign:'RESIGN',leaveRoom:'LEAVE',rematch:'REMATCH',cancelSearch:'CANCEL SEARCH',bluetoothTitle:'BLUETOOTH BOARD',bluetoothDescription:'Connect a compatible BLE Baghchal board/controller using Chromium over HTTPS. Not phone-to-phone Bluetooth.',bluetoothConnect:'PAIR DEVICE',bluetoothDisconnect:'DISCONNECT',globalRankings:'GLOBAL GUEST RANKINGS',guestRankings:'Guest rankings are informal; no verified account is required.',onlineWait:'Find a match or wait for a friend to join.',onlineWaiting:'WAITING',notYourTurn:'Wait for the other player.',serverRequired:'Enter your secure multiplayer server URL first.',inviteCopied:'Invitation copied.',connectionFailed:'Could not connect to multiplayer server.',pairSuccess:'Bluetooth board connected.',pairFailure:'Bluetooth is unavailable or the device declined pairing.',bleUnavailable:'Compatible BLE board required on supported Chromium browser.',rankEmpty:'No ranked matches have finished yet.',waitingOpponent:'Waiting for another player…',rankedMatch:'Ranked match',casualMatch:'Friendly match',watching:'Watching',noRoom:'No active room',tigerTime:'Tiger',goatTime:'Goat'});
 Object.assign(strings.ne,{onlineMode:'विश्वव्यापी अनलाइन',worldArena:'विश्व खेल मैदान',onlineDescription:'विश्वभरका साथीसँग खेल्नुहोस्। हरेक चाल सर्भरले जाँच्छ।',serverAddress:'सर्भर ठेगाना · WSS',connectServer:'अनलाइन जोडिनुहोस्',playerName:'खेलाडीको नाम',country:'देश (ISO २ अक्षर)',saveProfile:'परिचय सुरक्षित',quickMatch:'⚡ तुरुन्त खेलौँ',privateRoom:'✦ निजी कोठा',joinCode:'६-अक्षर कोठा कोड',joinRoom:'कोठामा प्रवेश',spectate:'हेर्नुहोस्',roomCode:'कोठा',copyInvite:'निम्तो कपी',resign:'हार स्वीकार',leaveRoom:'बाहिरिनुहोस्',rematch:'फेरि खेलौँ',cancelSearch:'खोजी रोक्नुहोस्',bluetoothTitle:'ब्लुटुथ बोर्ड',bluetoothDescription:'HTTPS मा समर्थित Chromium बाट उपयुक्त BLE बाघचाल बोर्डसँग जोड्नुहोस्। यो फोन–फोन ब्लुटुथ होइन।',bluetoothConnect:'उपकरण जोड्नुहोस्',bluetoothDisconnect:'छुट्याउनुहोस्',globalRankings:'विश्व अतिथि वरीयता',guestRankings:'यो अतिथि वरीयता हो; प्रमाणित खाता आवश्यक छैन।',onlineWait:'प्रतिद्वन्द्वी खोज्नुहोस् वा साथीको प्रतीक्षा गर्नुहोस्।',onlineWaiting:'प्रतीक्षामा',notYourTurn:'अर्को खेलाडीको पालो हो।',serverRequired:'पहिले सुरक्षित अनलाइन सर्भर ठेगाना राख्नुहोस्।',inviteCopied:'निम्तो कपी भयो।',connectionFailed:'अनलाइन सर्भरसँग जोडिन सकेन।',pairSuccess:'ब्लुटुथ बोर्ड जोडियो।',pairFailure:'ब्लुटुथ उपलब्ध छैन वा उपकरण जोडिएन।',bleUnavailable:'समर्थित Chromium र उपयुक्त BLE बोर्ड आवश्यक छ।',rankEmpty:'अहिलेसम्म वरीयताको खेल सकिएको छैन।',waitingOpponent:'अर्को खेलाडीको प्रतीक्षा…',rankedMatch:'वरीयता खेल',casualMatch:'मैत्रीपूर्ण खेल',watching:'दर्शक',noRoom:'खेल कोठा छैन',tigerTime:'बाघ',goatTime:'बाख्रा'});
@@ -156,6 +166,7 @@ function doMove(move,source='ui') {
   beep(move.capture!==null ? 'capture':'move');
   if(bluetooth.connected){bluetooth.latestGame=game;if(source!=='ble')bluetooth.move(move).catch(()=>{});}
   persist();render();
+  royalMoveEffect(move);
   if (game.winner) finish();
   else scheduleAi();
 }
@@ -189,8 +200,13 @@ function renderPieces() {
       node=document.createElement('div');
       node.className='piece piece-'+piece.side+' piece-enter';
       node.dataset.piece=piece.id;
-      node.innerHTML = '<span class="piece-icon">'+(piece.side===TIGER ? '🐯':'🐐')+
-        '</span><span class="piece-sheen"></span>';
+      const picture=document.createElement('img');
+      picture.src=art[piece.side];
+      picture.alt='';
+      picture.width=64;picture.height=64;picture.draggable=false;
+      const icon=document.createElement('span');icon.className='piece-icon';icon.appendChild(picture);
+      const sheen=document.createElement('span');sheen.className='piece-sheen';
+      node.append(icon,sheen);
       $('pieces').appendChild(node);
       pieceNodes.set(piece.id,node);
       requestAnimationFrame(()=>node.classList.remove('piece-enter'));
@@ -226,6 +242,39 @@ function renderBoard() {
   renderPieces();
 }
 function setText(id,value) { $(id).textContent=String(value); }
+function setMedallion(id,side) {
+  const root=$(id),src=art[side]||art.draw;
+  let img=root.querySelector('img');
+  if(!img){
+    root.replaceChildren();
+    img=document.createElement('img');img.alt='';img.width=64;img.height=64;
+    root.appendChild(img);
+  }
+  if(img.getAttribute('src')!==src)img.src=src;
+}
+function royalMoveEffect(move) {
+  if(!move || window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const board=$('board');
+  if(!board)return;
+  const at=move.capture!==null&&move.capture!==undefined?move.capture:move.to;
+  const [r,c]=rowCol(at);
+  const effect=document.createElement('span');
+  effect.className=move.capture!==null&&move.capture!==undefined?'royal-capture-fx':'royal-move-fx';
+  effect.style.left=coord(c);effect.style.top=coord(r);
+  effect.setAttribute('aria-hidden','true');
+  board.appendChild(effect);
+  effect.addEventListener('animationend',()=>effect.remove(),{once:true});
+  setTimeout(()=>effect.remove(),1000);
+}
+function announceMove() {
+  const announcer=$('moveAnnouncer');
+  if(!announcer||game.ply===lastAnnouncedPly)return;
+  lastAnnouncedPly=game.ply;
+  if(!game.lastMove)return;
+  const m=game.lastMove;
+  announcer.textContent=t(m.capture!==null?'royalCapture':m.from===null?'royalPlacement':'royalMove')+': '+
+    (m.from===null?'':nameOf(m.from)+' → ')+nameOf(m.to);
+}
 function renderHistory() {
   const list=$('moveHistory');
   list.replaceChildren();
@@ -237,7 +286,10 @@ function renderHistory() {
     const li=document.createElement('li');li.className='history-entry';
     const num=document.createElement('span');num.className='history-num';num.textContent=String(entry.ply).padStart(2,'0');
     const action=document.createElement('span');action.className='history-action';
-    const icon=document.createElement('span');icon.textContent=entry.side===TIGER?'🐯':'🐐';
+    const icon=document.createElement('span');icon.className='history-piece-icon';
+    const image=document.createElement('img');
+    image.src=art[entry.side];image.alt='';image.width=24;image.height=24;
+    icon.appendChild(image);
     const text=document.createElement('span');
     text.textContent=entry.from===null ?
       t('place')+' '+nameOf(entry.to) :
@@ -258,7 +310,7 @@ function render() {
   setText('modeLabel',t(settings.mode==='ai'?'vsAi':settings.mode==='online'?'onlineMode':'local'));
   setText('phaseValue',phase);
   setText('turnTitle',game.turn===GOAT?t('goatTurn'):t('tigerTurn'));
-  setText('turnAvatar',game.turn===GOAT?'🐐':'🐯');
+  setMedallion('turnAvatar',game.turn);
   $('turnAvatar').className='player-medallion '+(game.turn===TIGER?'tiger-medallion':'');
   setText('turnDesc',game.winner?t('matchFinished'): settings.mode==='online' && networkRoom?.status!=='active'?t('onlineWait'):ai?t('waitAi'):
     game.turn===TIGER?t('moveTiger'):game.goatsPlaced<20?t('placeGoat'):t('moveGoat'));
@@ -286,7 +338,12 @@ function render() {
   setText('boardHelp',game.winner?t('matchFinished') : thinking?t('waitAi') :
     selected!==null?t('restartHint'):game.turn===GOAT&&game.goatsPlaced<20?t('placeGoat'):
     game.turn===GOAT?t('moveGoat'):t('moveTiger'));
-  renderBoard();renderHistory();renderNetworkPanel();
+  for(const btn of document.querySelectorAll('[data-play-mode]')){
+    const active=btn.dataset.playMode===settings.mode;
+    btn.setAttribute('aria-pressed',String(active));
+    btn.classList.toggle('active',active);
+  }
+  renderBoard();renderHistory();renderNetworkPanel();announceMove();
 }
 function beep(kind) {
   if (!settings.sound) return;
@@ -349,7 +406,7 @@ function showHint() {
 }
 function finish() {
   const win=game.winner;
-  setText('winGlyph',win===GOAT?'🐐':win===TIGER?'🐯':'✦');
+  setMedallion('winGlyph',win===GOAT?GOAT:win===TIGER?TIGER:'draw');
   setText('winTitle',t(win===GOAT?'winnerGoat':win===TIGER?'winnerTiger':'draw'));
   setText('winDescription',t(win===GOAT?'winnerGoatDesc':win===TIGER?'winnerTigerDesc':'drawDesc'));
   $('winOverlay').hidden=false;
@@ -391,7 +448,7 @@ function onNetworkEvent(msg) {
     game=msg.room.game;
     log=msg.room.log||[];
     timeline=[];selected=null;hint=null;
-    if(game.ply!==previous && previous>=0)beep(game.lastMove?.capture!==null?'capture':'move');
+    if(game.ply!==previous && previous>=0){beep(game.lastMove?.capture!==null?'capture':'move');royalMoveEffect(game.lastMove);}
     render();
     if(game.winner&&!previouslyWon && settings.mode==='online')finish();
     if(!game.winner)$('winOverlay').hidden=true;
@@ -553,6 +610,29 @@ function wireOnline(){
 }
 
 function wire() {
+  document.querySelectorAll('[data-play-mode]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const mode=btn.dataset.playMode;
+      if(!['ai','local','online'].includes(mode)||settings.mode===mode){
+        $('game').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+        return;
+      }
+      $('modeSelect').value=mode;
+      $('modeSelect').dispatchEvent(new Event('change',{bubbles:true}));
+      $('game').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+    });
+  });
+  $('board').addEventListener('keydown',event=>{
+    if(!/^Arrow(Up|Down|Left|Right)$/.test(event.key))return;
+    const focus=event.target.closest('[data-cell]');
+    if(!focus)return;
+    const pos=Number(focus.dataset.cell);
+    const [r,c]=rowCol(pos);
+    const dirs={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+    const [dr,dc]=dirs[event.key];
+    const nr=Math.max(0,Math.min(4,r+dr)),nc=Math.max(0,Math.min(4,c+dc));
+    event.preventDefault();cellNodes[nr*5+nc].focus();
+  });
   $('rulesBtn').addEventListener('click',()=>$('rulesDialog').showModal());
   $('closeRulesBtn').addEventListener('click',()=>$('rulesDialog').close());
   $('rulesPlayBtn').addEventListener('click',()=>$('rulesDialog').close());
